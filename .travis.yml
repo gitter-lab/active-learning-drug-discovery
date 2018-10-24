@@ -1,0 +1,24 @@
+language: python
+
+matrix:
+  include:
+    - python: 3.6
+      env: KERAS_BACKEND=tensorflow
+
+notifications:
+  email: false
+
+before_install:
+  - wget https://repo.continuum.io/miniconda/Miniconda3-5.3.0-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/anaconda
+  - export PATH="$HOME/anaconda/bin:$PATH"
+  - conda env create -f conda_env.yml
+  - source activate active-learning
+  - conda list
+
+install:
+  - pip install -e .
+
+# todo: add tests
+script:
+  - python -c "print('Hello World')"
