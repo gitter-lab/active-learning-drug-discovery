@@ -1,6 +1,6 @@
 # Active Learning in Drug Discovery
 
-[![Build Status](https://travis-ci.org/gitter-lab/active-learning.svg?branch=master)](https://travis-ci.org/gitter-lab/active-learning)
+[![Build Status](https://travis-ci.org/gitter-lab/active-learning-drug-discovery.svg?branch=master)](https://travis-ci.org/gitter-lab/active-learning-drug-discovery)
 
 ## TODO
 

@@ -13,7 +13,7 @@ before_install:
   - bash miniconda.sh -b -p $HOME/anaconda
   - export PATH="$HOME/anaconda/bin:$PATH"
   - conda env create -f conda_env.yml
-  - source activate active-learning
+  - source activate aldd
   - conda list
 
 install:
