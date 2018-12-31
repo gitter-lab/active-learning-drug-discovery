@@ -40,7 +40,9 @@ if __name__ ==  '__main__':
                                      task_names=config["common"]["task_names"],
                                      smile_col_name=config["common"]["smile_col_name"],
                                      feature_name=config["common"]["feature_name"],
-                                     cluster_col_name=config["common"]["cluster_col_name"])
+                                     cluster_col_name=config["common"]["cluster_col_name"],
+                                     molecule_id_col_name=config["common"]["molecule_id_col_name"],
+                                     cost_col_name=config["common"]["cost_col_name"])
     X_train, y_train = training_loader.get_features_and_labels()
     
     # load and train model
@@ -55,8 +57,13 @@ if __name__ ==  '__main__':
                                       task_names=config["common"]["task_names"],
                                       smile_col_name=config["common"]["smile_col_name"],
                                       feature_name=config["common"]["feature_name"],
-                                      cluster_col_name=config["common"]["cluster_col_name"])
+                                      cluster_col_name=config["common"]["cluster_col_name"],,
+                                      molecule_id_col_name=config["common"]["molecule_id_col_name"],
+                                      cost_col_name=config["common"]["cost_col_name"])
     X_unlabeled = unlabeled_loader.get_features()
     
     # select next batch
-    
+    next_batch_selector = ClusterBasedSelector(training_loader=training_loader,
+                                               unlabeled_loader=unlabeled_loader,
+                                               trained_model=model,
+                                               next_batch_selector_params=config["next_batch_selector_params"])

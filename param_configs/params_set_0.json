@@ -38,15 +38,22 @@
     }
   },
   
-  "training_data_params":{
+  "training_data_params": {
     "data_loader": "CSVLoader",
     "data_path_format": "../datasets/training_data/iter_{}.csv"
   },
     
-  "unlabeled_data_params":{
+  "unlabeled_data_params": {
     "data_loader": "CSVLoader",
     "data_path_format": "../datasets/unlabeled_data/unlabeled_{}.csv"
-  }
+  },
+  
+  "next_batch_selector_params": {
+    "batch_size": 100,
+    "activity_threshold": 0.75,
+    "exploration_threshold": 0.5,
+    "exploitation_threshold": 0.5
+  },
     
   "common": {
     "params_set_results_dir": "../params_results/params_set_0_results/",
@@ -57,6 +64,8 @@
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
     "cluster_col_name": "Murcko Scaffold ID",
+    "molecule_id_col_name": "Molecue ID",
+    "cost_col_name": "Cost",
     
     "metrics_params": {
       "w_novelty": 0.5,

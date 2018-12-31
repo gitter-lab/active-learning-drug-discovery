@@ -25,11 +25,14 @@ class CSVLoader(object):
                  task_names,
                  smile_col_name='rdkit SMILES',
                  feature_name='Morgan FP_2_1024',
-                 cluster_col_name='Murcko Scaffold ID'):
+                 cluster_col_name='Murcko Scaffold ID',
+                 molecule_id_col_name='Molecule ID',
+                 cost_col_name='Cost'):
         self.csv_file_or_dir = csv_file_or_dir
         self.task_names = task_names
         self.smile_col_name = smile_col_name
         self.cluster_col_name = cluster_col_name
+        self.molecule_id_col_name = molecule_id_col_name
         
         if not isinstance(self.task_names, list):
             self.task_names = [self.task_names]
@@ -63,3 +66,11 @@ class CSVLoader(object):
     def get_smiles(self):
         data_df = self._load_dataframe()
         return data_df[self.smile_col_name].values.astype(float)
+        
+    def get_molecule_ids(self):
+        data_df = self._load_dataframe()
+        return data_df[self.molecule_id_col_name].values.astype(float)
+ 
+    def get_costs(self):
+        data_df = self._load_dataframe()
+        return data_df[self.cost_col_name].values.astype(float)
