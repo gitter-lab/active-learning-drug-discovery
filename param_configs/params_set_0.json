@@ -51,8 +51,10 @@
   "next_batch_selector_params": {
     "batch_size": 100,
     "activity_threshold": 0.75,
+    "exploitation_threshold": 0.5,
+    "exploitation_alpha": 0.5,
     "exploration_threshold": 0.5,
-    "exploitation_threshold": 0.5
+    "exploration_beta": 0.5
   },
     
   "common": {

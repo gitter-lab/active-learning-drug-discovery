@@ -36,11 +36,26 @@ class CSVLoader(object):
         
         if not isinstance(self.task_names, list):
             self.task_names = [self.task_names]
-
+            
+        # keep track of indices to drop for duplication purposes
+        self.idx_to_drop = None
+    
+    @property
+    def idx_to_drop(self):
+        return self.idx_to_drop
+        
+    @idx_to_drop.setter
+    def idx_to_drop(self, value):
+        self.idx_to_drop = idx_to_drop
+        if not isinstance(self.idx_to_drop, list):
+            self.idx_to_drop = [self.idx_to_drop]
+        
     def _load_dataframe(self):
         csv_files_list = [glob.glob(self.csv_file_or_dir.format('*'))]
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list)
+        if self.idx_to_drop is not None:
+            data_df = data_df.drop(data_df.index[self.idx_to_drop])
         return data_df
     
     def get_features(self):
@@ -65,11 +80,11 @@ class CSVLoader(object):
         
     def get_smiles(self):
         data_df = self._load_dataframe()
-        return data_df[self.smile_col_name].values.astype(float)
+        return data_df[self.smile_col_name].values
         
     def get_molecule_ids(self):
         data_df = self._load_dataframe()
-        return data_df[self.molecule_id_col_name].values.astype(float)
+        return data_df[self.molecule_id_col_name].values
  
     def get_costs(self):
         data_df = self._load_dataframe()

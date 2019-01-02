@@ -21,11 +21,11 @@ class SupervisedModel(object):
     
     @property
     def task_names(self):
-        return self._task_names
+        return self.task_names
         
     @task_name.setter
     def task_names(self, value):
-        self._task_names = value
+        self.task_names = value
         if not isinstance(self.task_names, list):
             self.task_names = [self.task_names]
     

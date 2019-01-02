@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from ..utils.data_utils import get_duplicate_smiles
+
 class NBSBase(object):
     """Abstract base Next Batch Selector class.
     # Properties
@@ -21,6 +23,14 @@ class NBSBase(object):
         self.unlabeled_loader = unlabeled_loader
         self.trained_model = trained_model
         self.next_batch_selector_params = next_batch_selector_params
+        
+        # remove already labeled molecules by checking training and unlabeled pool overlap
+        # note duplicates determined via rdkit smiles
+        self.smiles_train = training_loader.get_smiles()
+        self.smiles_unlabeled = unlabeled_loader.get_smiles()
+        
+        idx_to_drop = get_duplicate_smiles(self.smiles_train, self.smiles_unlabeled)
+        self.unlabeled_loader.idx_to_drop(idx_to_drop)
     
     def select_next_batch(self):
         return None
