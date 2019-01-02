@@ -54,7 +54,9 @@
     "exploitation_threshold": 0.5,
     "exploitation_alpha": 0.5,
     "exploration_threshold": 0.5,
-    "exploration_beta": 0.5
+    "exploration_beta": 0.5,
+    "dissimilarity_lambda": 0.5,
+    "intra_cluster_dissimilarity_threshold": 0.1
   },
     
   "common": {

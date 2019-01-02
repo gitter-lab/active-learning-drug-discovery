@@ -40,8 +40,8 @@ def get_duplicate_smiles(x_smiles, y_smiles):
     Computes avg cluster dissimilarity/distance of candidate clusters towards selected clusters.
     clusters_ordered_ids is the ordering of clusters_avg_dissimilarity.
 """
-def get_avg_cluster_dissimilarity(clusters_train_unlabeled, 
-                                  features_train_unlabeled, 
+def get_avg_cluster_dissimilarity(clusters, 
+                                  features, 
                                   selected_cluster_ids, 
                                   candidate_cluster_ids,
                                   feature_dist_func=tanimoto_dissimilarity):
@@ -49,14 +49,14 @@ def get_avg_cluster_dissimilarity(clusters_train_unlabeled,
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     
     for selected_cid in selected_cluster_ids:
-        selected_cid_instances = np.where(clusters_train_unlabeled == selected_cid)[0]
+        selected_cid_instances = np.where(clusters == selected_cid)[0]
         curr_clusters_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
         for i, candidate_cid in enumerate(candidate_cluster_ids):
-            candidate_cid_instances = np.where(clusters_train_unlabeled == candidate_cid)[0]
+            candidate_cid_instances = np.where(clusters == candidate_cid)[0]
             avg_cluster_dist = []
             for selected_instance in selected_cid_instances:
                 for candidate_instance in candidate_cid_instances:
-                    avg_cluster_dist.append(feature_dist_func(features_train_unlabeled[selected_instance,:], features_train_unlabeled[candidate_instance,:]))
+                    avg_cluster_dist.append(feature_dist_func(features[selected_instance,:], features[candidate_instance,:]))
                     
             curr_clusters_dissimilarity[i] = np.mean(avg_cluster_dist)
             
@@ -64,3 +64,16 @@ def get_avg_cluster_dissimilarity(clusters_train_unlabeled,
     
     clusters_avg_dissimilarity /= len(selected_cid)
     return clusters_ordered_ids, clusters_avg_dissimilarity
+    
+    
+"""
+    Computes dissimilarity matrix for a given row of features.
+"""
+def get_dissimilarity_matrix(features, 
+                             feature_dist_func=tanimoto_dissimilarity):
+    row_count = features.shape[0]
+    dissimilarity_matrix = np.zeros(shape=(row_count, row_count))
+    for i in range(row_count):
+        for j in range(row_count):
+            dissimilarity_matrix[i,j] = feature_dist_func(features[i,:], features[j,:])
+    return dissimilarity_matrix
