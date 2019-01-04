@@ -23,6 +23,7 @@ class NBSBase(object):
         self.unlabeled_loader = unlabeled_loader
         self.trained_model = trained_model
         self.next_batch_selector_params = next_batch_selector_params
+        self.intra_cluster_dissimilarity_threshold = 0.0
         
         # remove already labeled molecules by checking training and unlabeled pool overlap
         # note duplicates determined via rdkit smiles
@@ -48,11 +49,12 @@ class NBSBase(object):
         
         intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances)
         
-        # select instance with highest avg dissimilarity first
-        avg_dissimilarity = np.mean(intra_cluster_dissimilarity, axis=0)
-        curr_selected_idx = np.argsort(avg_dissimilarity)[::-1][0]
-        selected_instances.append(curr_selected_idx)
-        remaining_budget -= 1
+        if remaining_budget > 0:
+            # select instance with highest avg dissimilarity first
+            avg_dissimilarity = np.mean(intra_cluster_dissimilarity, axis=0)
+            curr_selected_idx = np.argsort(avg_dissimilarity)[::-1][0]
+            selected_instances.append(curr_selected_idx)
+            remaining_budget -= 1
         
         # select remaining instances based on what was already selected
         from functools import reduce

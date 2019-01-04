@@ -1,0 +1,10 @@
+{
+  "next_batch_selector_params": {
+    "class": "ClusterBasedRCSelector",
+  
+    "batch_size": 100,
+    
+    "select_dissimilar_instances_within_cluster": true,
+    "use_proportional_cluster_budget": true
+  }
+}

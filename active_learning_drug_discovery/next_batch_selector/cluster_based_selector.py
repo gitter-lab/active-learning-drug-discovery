@@ -30,8 +30,6 @@ class ClusterBasedSelector(NBSBase):
         # keep track of clusters selected already
         self.selected_exploitation_clusters = []
         self.selected_exploration_clusters = []
-        
-        self.intra_cluster_dissimilarity_threshold = 0
     
     def _get_cluster_dissimilarity(self, selected_cluster_ids, candidate_cluster_ids):
         features_train = self.training_loader.get_features()
@@ -54,10 +52,18 @@ class ClusterBasedSelector(NBSBase):
     
     def _get_candidate_exploitation_instances_total(self, cluster_ids):
         return None
-        
-    def _get_candidate_exploration_instances_total(self, cluster_ids):
-        return None
     
+    def _get_candidate_exploration_instances_total(self, cluster_ids):
+        exploration_instances_total = np.sum(self._get_candidate_exploration_instances_per_cluster_count(cluster_ids))
+        return exploration_instances_total
+        
+     def _get_candidate_exploration_instances_per_cluster_count(self, cluster_ids):
+        clusters_idx = np.in1d(self.clusters_unlabeled, cluster_ids)
+        _, candidate_exploration_instances_per_cluster = np.unique(self.clusters_unlabeled[clusters_idx], 
+                                                                   return_counts=True)
+        candidate_exploration_instances_per_cluster = candidate_exploration_instances_per_cluster[np.argsort(cluster_ids)]
+        return candidate_exploration_instances_per_cluster
+        
     def _select_instances_from_clusters(self,
                                         candidate_clusters, 
                                         total_budget,
@@ -105,25 +111,25 @@ class ClusterBasedSelector(NBSBase):
                                                   candidate_exploration_instances_total)
         
         # start selecting exploitation instances from exploitation clusters
-        selected_exploitation_instances, selected_exploitation_clusters = self._select_instances_from_clusters(candidate_exploitation_clusters, 
-                                                                                                               exploitation_budget, 
-                                                                                                               useExploitationStrategy=True)
+        selected_exploitation_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploitation_clusters, 
+                                                                                             exploitation_budget, 
+                                                                                             useExploitationStrategy=True)
         
         # start selecting exploration instances from exploration clusters
         exploration_budget = self.batch_size - len(selected_exploitation_instances)
         update_exploration_clusters = np.setdiff1d(candidate_exploration_clusters, selected_exploitation_clusters)
         candidate_exploration_clusters = update_exploration_clusters
-        selected_exploration_instances, selected_exploration_clusters = self._select_instances_from_clusters(candidate_exploration_clusters, 
-                                                                                                             exploration_budget, 
-                                                                                                             useExploitationStrategy=False)
+        selected_exploration_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
+                                                                                            exploration_budget, 
+                                                                                            useExploitationStrategy=False)
         
-        return (selected_exploitation_instances, selected_exploitation_clusters, 
-                selected_exploration_instances, selected_exploration_clusters)
+        return (selected_exploitation_cluster_instances_pairs, 
+                selected_exploration_cluster_instances_pairs)
                 
 class ClusterBasedWCSelector(ClusterBasedSelector):
     """
     Selects next batch based on cluster information.
-    Weighted-Clusters (WC): Uses a weighting scheme to select among clusters, 
+    Weighted-Clusters (WC): Uses a exploitation-exploration weighting scheme to select among clusters, 
                             and then selects instances within a cluster either based on dissimlarity or randomness. (see params)
     See latest slides for more description.
     """
@@ -142,10 +148,12 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self.exploitation_alpha = self.next_batch_selector_params["exploitation_alpha"]
         self.exploration_threshold = self.next_batch_selector_params["exploration_threshold"]
         self.exploration_beta = self.next_batch_selector_params["exploration_beta"]
-        self.dissimilarity_lambda = self.next_batch_selector_params["dissimilarity_lambda"]
-        self.intra_cluster_dissimilarity_threshold = self.next_batch_selector_params["intra_cluster_dissimilarity_threshold"]
+        
+        self.exploitation_dissimilarity_lambda = self.next_batch_selector_params["exploitation_dissimilarity_lambda"]
+        self.exploration_dissimilarity_lambda = self.next_batch_selector_params["exploration_dissimilarity_lambda"]
         
         self.select_dissimilar_instances_within_cluster = self.next_batch_selector_params["select_dissimilar_instances_within_cluster"]
+        self.intra_cluster_dissimilarity_threshold = self.next_batch_selector_params["intra_cluster_dissimilarity_threshold"]
         
         self.use_intra_cluster_threshold_for_exploitation = self.next_batch_selector_params["use_intra_cluster_threshold_for_exploitation"]
         self.use_proportional_cluster_budget_for_exploitation = self.next_batch_selector_params["use_proportional_cluster_budget_for_exploitation"]
@@ -225,16 +233,6 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         exploitation_instances_total = np.sum(self.clusters_df.loc[cluster_ids.values, 'High Activity Prediction Count'])
         return exploitation_instances_total
         
-    def _get_candidate_exploration_instances_total(self, cluster_ids):
-        exploration_instances_total = np.sum(self._get_candidate_exploration_instances_per_cluster_count(cluster_ids))
-        return exploration_instances_total
-        
-     def _get_candidate_exploration_instances_per_cluster_count(self, cluster_ids):
-        qualifying_clusters = self.clusters_df['Cluster ID'].isin(cluster_ids)
-        exploration_instances_per_cluster_count = self.cluster_df[qualifying_clusters]['Cluster Mol Count'] * \
-                                                  (1 - self.cluster_df[qualifying_clusters]['Coverage'])
-        return exploration_instances_per_cluster_count.values
-        
     """
         Currently not used. 
     """
@@ -258,78 +256,93 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                         useExploitationStrategy=True):
         selected_instances_cluster, remaining_cluster_budget = None, None
         if useExploitationStrategy:
-            selected_instances_cluster, remaining_cluster_budget = self._select_instances_from_clusters_helper(candidate_exploitation_clusters, 
-                                                                                                               exploitation_budget, ,
-                                                                                                               weight_column='Exploitation Weight',
-                                                                                                               useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploitation,
-                                                                                                               useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploitation,
-                                                                                                               selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
+            selected_clusters_instances_pairs = self._select_instances_from_clusters_helper(candidate_exploitation_clusters, 
+                                                                                            exploitation_budget, 
+                                                                                            self.exploitation_dissimilarity_lambda,
+                                                                                            weight_column='Exploitation Weight',
+                                                                                            useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploitation,
+                                                                                            useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploitation,
+                                                                                            selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
         else:
-            selected_instances_cluster, remaining_cluster_budget = self._select_instances_from_clusters(candidate_exploration_clusters, 
-                                                                                                        exploration_budget,
-                                                                                                        weight_column='Exploration Weight',
-                                                                                                        useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploration,
-                                                                                                        useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploration,
-                                                                                                        selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
-        return selected_instances_cluster, remaining_cluster_budget
+            selected_clusters_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
+                                                                                     exploration_budget,
+                                                                                     self.exploration_dissimilarity_lambda,
+                                                                                     weight_column='Exploration Weight',
+                                                                                     useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploration,
+                                                                                     useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploration,
+                                                                                     selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
+        return selected_clusters_instances_pairs
         
     def _select_instances_from_clusters_helper(self,
                                                candidate_clusters, 
                                                total_budget,
+                                               dissimilarity_lambda,
                                                weight_column='Exploitation Weight',
                                                useIntraClusterThreshold=True,
                                                useProportionalClusterBudget=False,
                                                selectDissimilarInstancesWithinCluster=True):
-        selected_instances = []
-        selected_clusters = []
-        budget_per_cluster = np.zeros(shape=(len(candidate_clusters),))
-        budget_per_cluster[:] = np.floor(total_budget / len(candidate_clusters))
+        selected_clusters_instances_pairs = []
+        curr_cluster_budget =  np.ceil(total_budget / len(candidate_clusters))
         if useProportionalClusterBudget:
             cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
             total_unlabeled_counts = np.sum(cluster_unlabeled_counts)
-            budget_per_cluster[:] = np.floor(total_budget * (cluster_unlabeled_counts /  total_unlabeled_counts))
-        budget_per_cluster[-1] = total_budget - np.sum(budget_per_cluster[:-1])
         
         remaining_total_budget = total_budget
-        # select highest weighted cluster first
-        cluster_weights = self.cluster_df[weight_column].loc[candidate_clusters].values
-        curr_selected_cluster = candidate_clusters[np.argsort(cluster_weights)[::-1][0]]
-        if selectDissimilarInstancesWithinCluster:
-            selected_instances_cluster, remaining_cluster_budget = self._select_dissimilar_instances_from_single_cluster(curr_selected_cluster, 
-                                                                                                                         budget_per_cluster[0],
-                                                                                                                         useIntraClusterThreshold=useIntraClusterThreshold)
-        else:
-            selected_instances_cluster, remaining_cluster_budget = self._select_random_instances_from_single_cluster(curr_selected_cluster, 
-                                                                                                                     budget_per_cluster[0])
-        selected_instances.extend(selected_instances_cluster)
-        selected_clusters.append(curr_selected_cluster)
-        remaining_total_budget -= len(selected_instances_cluster)
+        if remaining_total_budget > 0:
+            # select highest weighted cluster first
+            cluster_weights = self.cluster_df[weight_column].loc[candidate_clusters].values
+            curr_selected_cluster_idx = np.argsort(cluster_weights)[::-1][0]
+            curr_selected_cluster = candidate_clusters[curr_selected_cluster_idx]
+            
+            if useProportionalClusterBudget:
+                curr_cluster_budget = np.ceil(total_budget * (cluster_unlabeled_counts[curr_selected_cluster_idx] /  total_unlabeled_counts))
+            curr_cluster_budget = min(remaining_total_budget, curr_cluster_budget)
+            
+            if selectDissimilarInstancesWithinCluster:
+                selected_instances_cluster, remaining_cluster_budget = self._select_dissimilar_instances_from_single_cluster(curr_selected_cluster, 
+                                                                                                                             curr_cluster_budget,
+                                                                                                                             useIntraClusterThreshold=useIntraClusterThreshold)
+            else:
+                selected_instances_cluster, remaining_cluster_budget = self._select_random_instances_from_single_cluster(curr_selected_cluster, 
+                                                                                                                         curr_cluster_budget)
+            selected_clusters_instances_pairs.append((curr_selected_cluster,))
+            selected_clusters_instances_pairs[-1] = selected_clusters_instances_pairs[-1] + (selected_instances_cluster,)
+            remaining_total_budget -= len(selected_instances_cluster)
         
         # select remaining clusters based on what was already selected
         i=1
         while i < len(candidate_clusters) and remaining_total_budget > 0:
-            budget_per_cluster[i] = budget_per_cluster[i-1] + remaining_cluster_budget
-            rem_candidate_clusters = np.setdiff1d(candidate_clusters, selected_clusters)
+            selected_clusters_so_far = [x[0] for x in selected_clusters_instances_pairs]
+            
+            rem_candidate_clusters = np.setdiff1d(candidate_clusters, selected_clusters_so_far)
             cluster_weights = self.cluster_df[weight_column].loc[rem_candidate_clusters].values
-            _, clusters_avg_dissimilarity = self._get_cluster_dissimilarity(selected_clusters, 
+            _, clusters_avg_dissimilarity = self._get_cluster_dissimilarity(selected_clusters_so_far, 
                                                                             rem_candidate_clusters)
             # adjust cluster weights to include avg cluster dissimilarity
-            adjusted_cluster_weights = self.dissimilarity_lambda * clusters_avg_dissimilarity + \
-                                       ((1 - self.dissimilarity_lambda) * cluster_weights)
-            curr_selected_cluster = rem_candidate_clusters[np.argsort(adjusted_cluster_weights)[::-1][0]]
+            adjusted_cluster_weights = dissimilarity_lambda * clusters_avg_dissimilarity + \
+                                       ((1 - dissimilarity_lambda) * cluster_weights)
+            curr_selected_cluster_idx = np.where(candidate_clusters == rem_candidate_clusters[np.argsort(adjusted_cluster_weights)[::-1][0]])[0]
+            curr_selected_cluster = candidate_clusters[curr_selected_cluster_idx]
+            
+            # process current cluster budget
+            if useProportionalClusterBudget:
+                curr_cluster_budget = np.ceil(total_budget * (cluster_unlabeled_counts[curr_selected_cluster_idx] /  total_unlabeled_counts)) 
+            curr_cluster_budget = curr_cluster_budget + remaining_cluster_budget
+            curr_cluster_budget = min(remaining_total_budget, curr_cluster_budget)
+            
             if selectDissimilarInstancesWithinCluster:
                 selected_instances_cluster, remaining_cluster_budget = self._select_dissimilar_instances_from_single_cluster(curr_selected_cluster, 
-                                                                                                                             budget_per_cluster[i],
+                                                                                                                             curr_cluster_budget,
                                                                                                                              useIntraClusterThreshold=useIntraClusterThreshold)
             else:
                 selected_instances_cluster, remaining_cluster_budget = self._select_random_instances_from_single_cluster(curr_selected_cluster, 
-                                                                                                                         budget_per_cluster[i])
-            selected_instances.extend(selected_instances_cluster)
-            selected_clusters.append(curr_selected_cluster)
+                                                                                                                         curr_cluster_budget)
+            selected_clusters_instances_pairs.append((curr_selected_cluster,))
+            selected_clusters_instances_pairs[-1] = selected_clusters_instances_pairs[-1] + (selected_instances_cluster,)
             remaining_total_budget -= len(selected_instances_cluster)
             i+=1
         
-        return selected_instances, selected_clusters
+        return selected_clusters_instances_pairs
         
     def select_next_batch(self):
         # populate self.cluster_df
@@ -344,3 +357,73 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self._compute_cluster_exploration_weight()
         
         return super(ClusterBasedWCSelector, self).select_next_batch()
+        
+
+       
+class ClusterBasedRCSelector(ClusterBasedSelector):
+    """
+    Selects next batch based on cluster information.
+    Random-Clusters (RC): Selects exploitation-exploration clusters randomly.
+    See latest slides for more description.
+    """
+    def __init__(self, 
+                 training_loader,
+                 unlabeled_loader,
+                 trained_model,
+                 next_batch_selector_params):
+        super(ClusterBasedRCSelector, self).__init__(training_loader,
+                                                     unlabeled_loader,
+                                                     trained_model,
+                                                     next_batch_selector_params)
+        self.batch_size = self.next_batch_selector_params["batch_size"]
+        
+        self.select_dissimilar_instances_within_cluster = self.next_batch_selector_params["select_dissimilar_instances_within_cluster"]
+        self.use_proportional_cluster_budget = self.next_batch_selector_params["use_proportional_cluster_budget"]
+    
+    def _get_candidate_exploitation_clusters(self):
+        return []
+        
+    def _get_candidate_exploration_clusters(self):
+        candidate_exploration_clusters = np.unique(self.clusters_unlabeled)
+        return candidate_exploration_clusters
+    
+    def _get_candidate_exploitation_instances_total(self, cluster_ids):
+        return 0
+    
+    def _select_instances_from_clusters(self,
+                                        candidate_clusters, 
+                                        total_budget,
+                                        useExploitationStrategy=True):
+        selected_clusters_instances_pairs = []
+        curr_cluster_budget =  np.ceil(total_budget / len(candidate_clusters))
+        if self.use_proportional_cluster_budget:
+            cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
+            total_unlabeled_counts = np.sum(cluster_unlabeled_counts)
+        
+        remaining_total_budget = total_budget
+        i=0
+        rem_clusters_idx = list(np.arange(len(candidate_clusters)))
+        while i < len(candidate_clusters) and remaining_total_budget > 0:
+            curr_selected_cluster_idx = np.random.choice(rem_clusters_idx, size=1, replace=False)
+            rem_clusters_idx = rem_clusters_idx.remove(curr_selected_cluster_idx)
+            curr_selected_cluster = candidate_clusters[curr_selected_cluster_idx]
+            
+            # process current cluster budget
+            if self.use_proportional_cluster_budget:
+                curr_cluster_budget = np.ceil(total_budget * (cluster_unlabeled_counts[curr_selected_cluster_idx] /  total_unlabeled_counts)) 
+            curr_cluster_budget = curr_cluster_budget + remaining_cluster_budget
+            curr_cluster_budget = min(remaining_total_budget, curr_cluster_budget)
+            
+            if self.select_dissimilar_instances_within_cluster:
+                selected_instances_cluster, remaining_cluster_budget = self._select_dissimilar_instances_from_single_cluster(curr_selected_cluster, 
+                                                                                                                             curr_cluster_budget,
+                                                                                                                             useIntraClusterThreshold=False)
+            else:
+                selected_instances_cluster, remaining_cluster_budget = self._select_random_instances_from_single_cluster(curr_selected_cluster, 
+                                                                                                                         curr_cluster_budget)
+            selected_clusters_instances_pairs.append((curr_selected_cluster,))
+            selected_clusters_instances_pairs[-1] = selected_clusters_instances_pairs[-1] + (selected_instances_cluster,)
+            remaining_total_budget -= len(selected_instances_cluster)
+            i+=1
+            
+        return selected_clusters_instances_pairs
