@@ -32,5 +32,73 @@ class NBSBase(object):
         idx_to_drop = get_duplicate_smiles(self.smiles_train, self.smiles_unlabeled)
         self.unlabeled_loader.idx_to_drop(idx_to_drop)
     
+    """
+        Selects dissimilar instances given the instance indices. 
+        Treats all instances identified by original_instance_idx as belonging to the same cluster.
+        If useIntraClusterThreshold, only instances with avg dissimilarity >= self.intra_cluster_dissimilarity_threshold qualify. 
+    """
+    def _select_dissimilar_instances(self,
+                                     original_instance_idx, 
+                                     budget,
+                                     useIntraClusterThreshold=True):
+        selected_instances = []
+        remaining_budget = budget
+        features_unlabeled = self.unlabeled_loader.get_features()
+        features_instances = features_unlabeled[original_instance_idx,:]
+        
+        intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances)
+        
+        # select instance with highest avg dissimilarity first
+        avg_dissimilarity = np.mean(intra_cluster_dissimilarity, axis=0)
+        curr_selected_idx = np.argsort(avg_dissimilarity)[::-1][0]
+        selected_instances.append(curr_selected_idx)
+        remaining_budget -= 1
+        
+        # select remaining instances based on what was already selected
+        from functools import reduce
+        while remaining_budget > 0:
+            qualifying_idx = []
+            if useIntraClusterThreshold:
+                for idx in selected_instances:
+                    qualifying_idx.append(np.where(intra_cluster_dissimilarity[idx,:] >= self.intra_cluster_dissimilarity_threshold)[0])
+                
+                qualifying_idx = reduce(np.intersect1d, qualifying_idx)
+                if qualifying_idx.shape[0] == 0:
+                    break
+            else:
+                qualifying_idx = range(intra_cluster_dissimilarity.shape[1])
+                
+            sub_matrix = intra_cluster_dissimilarity[selected_instances,:]
+            avg_dissimilarity = np.mean(sub_matrix[:,qualifying_idx], axis=0)
+            curr_selected_idx = qualifying_idx[np.argsort(avg_dissimilarity)[::-1][0]]
+            selected_instances.append(curr_selected_idx)
+            remaining_budget -= 1
+        
+        selected_instances = list(original_instance_idx[selected_instances])
+        return selected_instances, remaining_budget
+
+    """
+        Selects instances from selected_cluster using a probability distribution without replacement. 
+        If instance_proba=None, then selects instances uniformly.
+    """
+    def _select_random_instances(self,
+                                 original_instance_idx, 
+                                 budget,
+                                 instance_proba=None):
+        remaining_budget = budget
+        selected_instances = list(np.random.choice(original_instance_idx, size=remaining_budget, 
+                                                   replace=False, p=instance_proba))
+        remaining_budget -= len(selected_instances)
+        return selected_instances, remaining_budget
+        
+    """
+        Simple budget allocation of taking the ratio of ee counts.
+    """
+    def _get_ee_budget(self, candidate_exploitation_instances_total, candidate_exploration_instances_total):
+        exploitation_ratio = candidate_exploitation_instances_total / (candidate_exploitation_instances_total + candidate_exploration_instances_total) 
+        exploitation_budget = np.floor(exploitation_ratio * self.batch_size)
+        return exploitation_budget
+        
+    
     def select_next_batch(self):
         return None
