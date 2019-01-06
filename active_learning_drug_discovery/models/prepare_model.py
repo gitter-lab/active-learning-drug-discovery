@@ -10,10 +10,11 @@ from __future__ import print_function
 from .supervised import *
 from .unsupervised import *
  
-def load_model(model_type, 
-               model_class,
-               model_params,
-               task_names):
+def prepare_model(model_params,
+                  task_names):
+    model_type = model_params["type"]
+    model_class = model_params["class"]
+    model_params = model_params["params"]
     return model_func_dict[model_type][model_class](model_params, task_names)
     
 def model_func_dict():

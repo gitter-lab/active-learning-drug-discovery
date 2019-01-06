@@ -1,0 +1,24 @@
+{
+  "next_batch_selector_params": {
+    "class": "ClusterBasedWCSelector",
+  
+    "batch_size": [96, 384, 1536],
+    
+    "exploitation_activity_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "use_intra_cluster_threshold_for_exploitation": [false, true],
+    "use_proportional_cluster_budget_for_exploitation": [false, true],
+    
+    "exploration_strategy": ["weighted", "random", "dissimilar"],
+    "exploration_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploration_beta": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploration_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "use_intra_cluster_threshold_for_exploration": [false, true],
+    "use_proportional_cluster_budget_for_exploration": [false, true],
+    
+    "select_dissimilar_instances_within_cluster": [false, true],
+    "intra_cluster_dissimilarity_threshold": [0.0, 0.05, 0.1, 0.15, 0.2]
+  }
+}

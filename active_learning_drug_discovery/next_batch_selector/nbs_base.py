@@ -18,12 +18,13 @@ class NBSBase(object):
                  training_loader,
                  unlabeled_loader,
                  trained_model,
-                 next_batch_selector_params):
+                 batch_size=384,
+                 intra_cluster_dissimilarity_threshold=0.0):
         self.training_loader = training_loader
         self.unlabeled_loader = unlabeled_loader
         self.trained_model = trained_model
-        self.next_batch_selector_params = next_batch_selector_params
-        self.intra_cluster_dissimilarity_threshold = 0.0
+        self.batch_size = batch_size
+        self.intra_cluster_dissimilarity_threshold = intra_cluster_dissimilarity_threshold
         
         # remove already labeled molecules by checking training and unlabeled pool overlap
         # note duplicates determined via rdkit smiles

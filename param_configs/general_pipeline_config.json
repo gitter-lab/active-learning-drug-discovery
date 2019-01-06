@@ -15,13 +15,25 @@
   },
   
   "training_data_params": {
-    "data_loader": "CSVLoader",
-    "data_path_format": "../datasets/training_data/iter_{}.csv"
+    "data_loader_class": "CSVLoader",
+    "data_path_format": "../datasets/training_data/iter_{}.csv",
+    
+    "smile_col_name": "rdkit SMILES",
+    "feature_name": "Morgan FP_2_1024",
+    "cluster_col_name": "Murcko Scaffold ID",
+    "molecule_id_col_name": "Molecue ID",
+    "cost_col_name": "Cost"
   },
     
   "unlabeled_data_params": {
-    "data_loader": "CSVLoader",
-    "data_path_format": "../datasets/unlabeled_data/unlabeled_{}.csv"
+    "data_loader_class": "CSVLoader",
+    "data_path_format": "../datasets/unlabeled_data/unlabeled_{}.csv",
+    
+    "smile_col_name": "rdkit SMILES",
+    "feature_name": "Morgan FP_2_1024",
+    "cluster_col_name": "Murcko Scaffold ID",
+    "molecule_id_col_name": "Molecue ID",
+    "cost_col_name": "Cost"
   },
     
   "common": {
@@ -30,11 +42,6 @@
     "eval_dest_file": "/eval.csv",
     
     "task_names": "PriA-SSB Activity",
-    "smile_col_name": "rdkit SMILES",
-    "feature_name": "Morgan FP_2_1024",
-    "cluster_col_name": "Murcko Scaffold ID",
-    "molecule_id_col_name": "Molecue ID",
-    "cost_col_name": "Cost",
     
     "metrics_params": {
       "w_novelty": 0.5,

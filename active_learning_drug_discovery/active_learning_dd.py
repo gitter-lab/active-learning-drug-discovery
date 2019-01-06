@@ -15,8 +15,9 @@ from __future__ import print_function
 import argparse
 import json
 
-from active_learning_dd.models.load_model import load_model
-from active_learning_dd.database_loaders.load_data import prepare_loader
+from active_learning_dd.models.prepare_model import prepare_model
+from active_learning_dd.database_loaders.prepare_loader import prepare_loader
+from active_learning_dd.next_batch_selector.prepare_selector import prepare_selector
 
 
 if __name__ ==  '__main__':
@@ -40,34 +41,20 @@ if __name__ ==  '__main__':
         nbs_config = json.load(f)
         
     # load training data
-    training_loader = prepare_loader(data_loader_params=pipeline_config["training_data_params"], 
-                                     task_names=pipeline_config["common"]["task_names"],
-                                     smile_col_name=pipeline_config["common"]["smile_col_name"],
-                                     feature_name=pipeline_config["common"]["feature_name"],
-                                     cluster_col_name=pipeline_config["common"]["cluster_col_name"],
-                                     molecule_id_col_name=pipeline_config["common"]["molecule_id_col_name"],
-                                     cost_col_name=pipeline_config["common"]["cost_col_name"])
+    training_loader = prepare_loader(data_loader_params=pipeline_config["training_data_params"])
     X_train, y_train = training_loader.get_features_and_labels()
     
     # load and train model
-    model = load_model(model_type=pipeline_config["model"]["type"]
-                       model_class=pipeline_config["model"]["class"]
-                       model_params=pipeline_config["model"]["params"]
+    model = load_model(model_params=pipeline_config["model"],
                        task_names=pipeline_config["common"]["task_names"])
     model.fit(X_train, y_train)
     
     # load unlabeled pool
-    unlabeled_loader = prepare_loader(data_loader_params=pipeline_config["unlabeled_data_params"], 
-                                      task_names=pipeline_config["common"]["task_names"],
-                                      smile_col_name=pipeline_config["common"]["smile_col_name"],
-                                      feature_name=pipeline_config["common"]["feature_name"],
-                                      cluster_col_name=pipeline_config["common"]["cluster_col_name"],,
-                                      molecule_id_col_name=pipeline_config["common"]["molecule_id_col_name"],
-                                      cost_col_name=pipeline_config["common"]["cost_col_name"])
+    unlabeled_loader = prepare_loader(data_loader_params=pipeline_config["unlabeled_data_params"])
     X_unlabeled = unlabeled_loader.get_features()
     
     # select next batch
-    next_batch_selector = ClusterBasedSelector(training_loader=training_loader,
-                                               unlabeled_loader=unlabeled_loader,
-                                               trained_model=model,
-                                               next_batch_selector_params=nbs_config["next_batch_selector_params"])
+    next_batch_selector = prepare_selector(training_loader=training_loader,
+                                           unlabeled_loader=unlabeled_loader,
+                                           trained_model=model,
+                                           next_batch_selector_params=nbs_config["next_batch_selector_params"])
