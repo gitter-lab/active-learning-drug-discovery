@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from ..utils.data_utils import get_duplicate_smiles
+from ..utils.data_utils import get_duplicate_smiles, get_dissimilarity_matrix, feature_dist_func_dict
 
 class NBSBase(object):
     """Abstract base Next Batch Selector class.
@@ -19,12 +19,14 @@ class NBSBase(object):
                  unlabeled_loader,
                  trained_model,
                  batch_size=384,
-                 intra_cluster_dissimilarity_threshold=0.0):
+                 intra_cluster_dissimilarity_threshold=0.0,
+                 feature_dist_func="tanimoto_dissimilarity"):
         self.training_loader = training_loader
         self.unlabeled_loader = unlabeled_loader
         self.trained_model = trained_model
         self.batch_size = batch_size
         self.intra_cluster_dissimilarity_threshold = intra_cluster_dissimilarity_threshold
+        self.feature_dist_func = feature_dist_func_dict[feature_dist_func]
         
         # remove already labeled molecules by checking training and unlabeled pool overlap
         # note duplicates determined via rdkit smiles
@@ -48,7 +50,8 @@ class NBSBase(object):
         features_unlabeled = self.unlabeled_loader.get_features()
         features_instances = features_unlabeled[original_instance_idx,:]
         
-        intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances)
+        intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances,
+                                                               self.feature_dist_func)
         
         if remaining_budget > 0:
             # select instance with highest avg dissimilarity first
@@ -104,4 +107,4 @@ class NBSBase(object):
         
     
     def select_next_batch(self):
-        return None
+        raise NotImplementedError

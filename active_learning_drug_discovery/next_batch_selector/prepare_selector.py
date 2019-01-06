@@ -20,7 +20,8 @@ def load_next_batch_selector(training_loader,
                                     next_batch_selector_params)
     
 def nbs_func_dict():
-    return {"ClusterBasedWCSelector": prepare_ClusterBasedWCSelector,}
+    return {"ClusterBasedWCSelector": prepare_ClusterBasedWCSelector,
+            "InstanceBasedWCSelector": prepare_InstanceBasedWCSelector}
 
     
 def prepare_ClusterBasedWCSelector(training_loader,
@@ -32,14 +33,17 @@ def prepare_ClusterBasedWCSelector(training_loader,
                                            trained_model=trained_model,
                                            batch_size=next_batch_selector_params["batch_size"],
                                            intra_cluster_dissimilarity_threshold=next_batch_selector_params["intra_cluster_dissimilarity_threshold"],
+                                           feature_dist_func=next_batch_selector_params["feature_dist_func",
+                                           uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                            select_dissimilar_instances_within_cluster=next_batch_selector_params["select_dissimilar_instances_within_cluster"],
-                                           activity_threshold=next_batch_selector_params["activity_threshold"],
-                                           exploitation_threshold=next_batch_selector_params["exploitation_threshold"],
+                                           exploitation_activity_threshold=next_batch_selector_params["exploitation_activity_threshold"],
+                                           exploitation_weight_threshold=next_batch_selector_params["exploitation_weight_threshold"],
                                            exploitation_alpha=next_batch_selector_params["exploitation_alpha"],
                                            exploitation_dissimilarity_lambda=next_batch_selector_params["exploitation_dissimilarity_lambda"],
                                            use_intra_cluster_threshold_for_exploitation=next_batch_selector_params["use_intra_cluster_threshold_for_exploitation"],
                                            use_proportional_cluster_budget_for_exploitation=next_batch_selector_params["use_proportional_cluster_budget_for_exploitation"],
-                                           exploration_threshold=next_batch_selector_params["exploration_threshold"],
+                                           exploration_strategy=next_batch_selector_params["exploration_strategy"],
+                                           exploration_weight_threshold=next_batch_selector_params["exploration_weight_threshold"],
                                            exploration_beta=next_batch_selector_params["exploration_beta"],
                                            exploration_dissimilarity_lambda=next_batch_selector_params["exploration_dissimilarity_lambda"],
                                            use_intra_cluster_threshold_for_exploration=next_batch_selector_params["use_intra_cluster_threshold_for_exploration"],
@@ -47,14 +51,20 @@ def prepare_ClusterBasedWCSelector(training_loader,
     return CBWC_selector
     
     
-def prepare_ClusterBasedRCSelector(training_loader,
-                                   unlabeled_loader,
-                                   trained_model,
-                                   next_batch_selector_params):
-    CBRC_selector = ClusterBasedRCSelector(training_loader=training_loader,
-                                           unlabeled_loader=unlabeled_loader,
-                                           trained_model=trained_model,
-                                           batch_size=next_batch_selector_params["batch_size"],
-                                           select_dissimilar_instances_within_cluster=next_batch_selector_params["select_dissimilar_instances_within_cluster"],
-                                           use_proportional_cluster_budget=next_batch_selector_params["use_proportional_cluster_budget"])
-    return CBRC_selector
+def prepare_InstanceBasedWCSelector(training_loader,
+                                    unlabeled_loader,
+                                    trained_model,
+                                    next_batch_selector_params):
+    IBWC_selector = InstanceBasedWCSelector(training_loader=training_loader,
+                                            unlabeled_loader=unlabeled_loader,
+                                            trained_model=trained_model,
+                                            batch_size=next_batch_selector_params["batch_size"],
+                                            feature_dist_func=next_batch_selector_params["feature_dist_func",
+                                            uncertainty_method=next_batch_selector_params["uncertainty_method"],
+                                            exploitation_activity_threshold=next_batch_selector_params["exploitation_activity_threshold"],
+                                            exploitation_weight_threshold=next_batch_selector_params["exploitation_weight_threshold"],
+                                            exploitation_dissimilarity_lambda=next_batch_selector_params["exploitation_dissimilarity_lambda"],
+                                            exploration_strategy=next_batch_selector_params["exploration_strategy"],
+                                            exploration_weight_threshold=next_batch_selector_params["exploration_weight_threshold"],
+                                            exploration_dissimilarity_lambda=next_batch_selector_params["exploration_dissimilarity_lambda"])
+    return IBWC_selector

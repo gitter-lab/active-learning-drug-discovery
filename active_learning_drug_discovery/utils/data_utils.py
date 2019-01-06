@@ -21,7 +21,14 @@ def tanimoto_dissimilarity(X, Y):
     Y = Y.astype(bool)
     tan_sim = np.sum(np.bitwise_and(X, Y))/np.sum(np.bitwise_or(X, Y))
     return 1 - tan_sim
- 
+
+"""
+    Computes tanimoto dissimilarity between two vectors. 
+"""
+def feature_dist_func_dict():
+    return {"tanimoto_dissimilarity": tanimoto_dissimilarity}
+
+    
 """
     Returns indices of duplicated smiles from x_smiles in y_smiles. 
 """
@@ -30,7 +37,7 @@ def get_duplicate_smiles(x_smiles, y_smiles):
     y_canon_smiles = [Chem.MolToSmiles(Chem.MolFromSmiles(y)) for y im y_smiles]
     
     smiles_df = pd.DataFrame(data=[x_canon_smiles + y_canon_smiles],
-                                 col=['rdkit SMILES'])
+                             col=['rdkit SMILES'])
     smiles_df = smiles_df[smiles_df['rdkit SMILES'].duplicated(keep='first')]
     idx_to_drop = smiles_df.groupby(by='rdkit SMILES').apply(lambda x: list(x.index)).tolist()
     idx_to_drop = list(np.array(idx_to_drop).flatten())
