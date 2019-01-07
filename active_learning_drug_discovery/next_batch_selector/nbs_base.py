@@ -35,6 +35,11 @@ class NBSBase(object):
         
         idx_to_drop = get_duplicate_smiles(self.smiles_train, self.smiles_unlabeled)
         self.unlabeled_loader.idx_to_drop(idx_to_drop)
+        
+        # throw exception if after dropping overlapping idx, there are no more unlabeled data to select
+        if self.get_labels().shape[0] == 0:
+            raise RuntimeError('Training data and unlabaled data are overlap completely.\n' 
+                               'This means there is no more unlabeled data to select from.')
     
     """
         Selects dissimilar instances given the instance indices. 

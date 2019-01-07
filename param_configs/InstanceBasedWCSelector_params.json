@@ -1,6 +1,6 @@
 {
   "next_batch_selector_params": {
-    "class": "InstanceBasedWCSelector",
+    "class": ["InstanceBasedWCSelector"],
   
     "batch_size": [96, 384, 1536],
     
@@ -11,7 +11,7 @@
     "exploration_strategy": ["weighted", "random", "dissimilar"],
     "exploration_weight_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
     "exploration_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
-    "feature_dist_func": "tanimoto_dissimilarity",
+    "feature_dist_func": ["tanimoto_dissimilarity"],
     
     "uncertainty_method": ["least_confidence", 
                            "query_by_committee", 

@@ -1,11 +1,6 @@
 """
-    Runs a single iteration of the active learning pipeline.
-    
-    Usage:
-        python active_learning_dd.py \
-        --params_json_file=../param_configs/params_set_0.json \
-        --iter_num=$iter_num \ 
-        --process_num=$process_num
+    Contains convenience functions for running the active learning pipeline.
+    Typically takes in dictionary object specifying the configs.
 """
 
 from __future__ import absolute_import
@@ -19,42 +14,63 @@ from active_learning_dd.models.prepare_model import prepare_model
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
 from active_learning_dd.next_batch_selector.prepare_selector import prepare_selector
 
-
-if __name__ ==  '__main__':
-    # read args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pipeline_params_json_file', action="store", dest="pipeline_params_json_file", required=True)
-    parser.add_argument('--nbs_params_json_file', action="store", dest="params_json_file", required=True)
-    parser.add_argument('--iter_num', type=int, default=0, action="store", dest="iter_num", required=True)
-    parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=True)
+"""
+    Runs a single iteration of the active learning pipeline.
     
-    given_args = parser.parse_args()
-    pipeline_params_json_file = given_args.pipeline_params_json_file
-    nbs_params_json_file = given_args.nbs_params_json_file
-    iter_num = given_args.iter_num
-    process_num = given_args.process_num
+    Returns:
+    (selected_batch_df, 
+     exploitation_array, 
+     exploration_array)
     
-    # load param json configs
-    with open(pipeline_params_json_file) as f:
-        pipeline_config = json.load(f)
-    with open(nbs_params_json_file) as f:
-        nbs_config = json.load(f)
-        
+    where exploitation_array and exploration_array are of the form:
+    [instance_index, cluster_id]
+"""
+def get_next_batch(training_loader_params, 
+                   unlabeled_loader_params,
+                   model_params,
+                   task_names,
+                   next_batch_selector_params):
     # load training data
-    training_loader = prepare_loader(data_loader_params=pipeline_config["training_data_params"])
+    training_loader = prepare_loader(data_loader_params=training_loader_params,
+                                     task_names=task_names)
     X_train, y_train = training_loader.get_features_and_labels()
     
     # load and train model
-    model = load_model(model_params=pipeline_config["model"],
-                       task_names=pipeline_config["common"]["task_names"])
+    model = load_model(model_params=model_params,
+                       task_names=task_names)
     model.fit(X_train, y_train)
     
     # load unlabeled pool
-    unlabeled_loader = prepare_loader(data_loader_params=pipeline_config["unlabeled_data_params"])
+    unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
+                                      task_names=task_name)
     X_unlabeled = unlabeled_loader.get_features()
     
     # select next batch
     next_batch_selector = prepare_selector(training_loader=training_loader,
                                            unlabeled_loader=unlabeled_loader,
                                            trained_model=model,
-                                           next_batch_selector_params=nbs_config["next_batch_selector_params"])
+                                           next_batch_selector_params=next_batch_selector_params)
+    selected_clusters_instances_pairs = next_batch_selector.select_next_batch()
+    selected_exploitation_cluster_instances_pairs = selected_clusters_instances_pairs[0]
+    selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]
+    
+    # get unlabeled dataframe slice corresponding to selected pairs
+    unlabeled_df = unlabeled_loader.get_dataframe()
+    exploitation_array = unroll_cluster_instances_pairs(selected_exploitation_cluster_instances_pairs)
+    exploration_array = unroll_cluster_instances_pairs(selected_exploration_cluster_instances_pairs)
+    exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]
+    exploration_df = unlabeled_df.iloc[exploration_array[:,0],:]
+    
+    return exploitation_df, exploration_df, exploitation_array, exploration_array
+    
+    
+"""
+    Unrolls cluster instance pairs list into a 2D numpy array with cols: [instance_idx, cluster_id] 
+"""
+def unroll_cluster_instances_pairs(cluster_instances_pairs):
+    cluster_instances_pairs = a[:]
+    instance_array = np.hstack([x[1] for x in cluster_instances_pairs]).reshape(-1,1)
+    cluster_array = np.hstack([np.repeat(x[0], len(x[1])) for x in cluster_instances_pairs]).reshape(-1,1)
+        
+    instance_cluster_array = np.hstack([instance_array, cluster_array])
+    return instance_cluster_array

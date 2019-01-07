@@ -37,16 +37,16 @@
   },
     
   "common": {
-    "params_set_results_dir": "../params_results/params_set_0_results/",
+    "params_set_results_dir": "../params_results/{}_{}/",
+    "params_set_config_csv": "config.csv"
     "iter_results_dir": "/iter_{}/",
-    "eval_dest_file": "/eval.csv",
+    "eval_dest_file": "/{}_eval.csv",
+    "batch_csv": "/{}.csv",
     
     "task_names": "PriA-SSB Activity",
     
     "metrics_params": {
-      "w_novelty": 0.5,
-      "perc_vec": [0.001, 0.0015, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2],
-      "n_tests_list": [100, 250, 500, 1000, 2500]
+      "w_novelty": 0.5
     }
   }
 }

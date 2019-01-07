@@ -1,6 +1,6 @@
 {
   "next_batch_selector_params": {
-    "class": "ClusterBasedWCSelector",
+    "class": ["ClusterBasedWCSelector"],
   
     "batch_size": [96, 384, 1536],
     
@@ -20,7 +20,7 @@
     
     "select_dissimilar_instances_within_cluster": [false, true],
     "intra_cluster_dissimilarity_threshold": [0.0, 0.05, 0.1, 0.15, 0.2],
-    "feature_dist_func": "tanimoto_dissimilarity",
+    "feature_dist_func": ["tanimoto_dissimilarity"],
     
     "uncertainty_method": ["least_confidence", 
                            "query_by_committee", 

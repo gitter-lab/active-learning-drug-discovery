@@ -57,15 +57,19 @@ class CSVLoader(object):
         if self.idx_to_drop is not None:
             data_df = data_df.drop(data_df.index[self.idx_to_drop])
         return data_df
-    
-    def get_features(self):
+        
+    def get_dataframe(self):
         data_df = self._load_dataframe()
+        return data_df
+        
+    def get_features(self):
+        data_df = self.get_dataframe()
         X_data = data_df[self.feature_name].values
         X_data = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in X_data]).astype(float) # this is from: https://stackoverflow.com/a/29091970
         return X_data
 
     def get_labels(self):
-        data_df = self._load_dataframe()
+        data_df = self.get_dataframe()
         y_data = data_df[self.task_names].values.astype(float)
         return y_data
         
@@ -75,17 +79,17 @@ class CSVLoader(object):
         return X_data, y_data
         
     def get_clusters(self):
-        data_df = self._load_dataframe()
+        data_df = self.get_dataframe()
         return data_df[self.cluster_col_name].values.astype(float)
         
     def get_smiles(self):
-        data_df = self._load_dataframe()
+        data_df = self.get_dataframe()
         return data_df[self.smile_col_name].values
         
     def get_molecule_ids(self):
-        data_df = self._load_dataframe()
+        data_df = self.get_dataframe()
         return data_df[self.molecule_id_col_name].values
  
     def get_costs(self):
-        data_df = self._load_dataframe()
+        data_df = self.get_dataframe()
         return data_df[self.cost_col_name].values.astype(float)
