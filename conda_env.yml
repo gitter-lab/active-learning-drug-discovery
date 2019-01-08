@@ -1,4 +1,4 @@
-name: aldd
+name: active_learning_dd
 channels:
 - bioconda
 - rdkit

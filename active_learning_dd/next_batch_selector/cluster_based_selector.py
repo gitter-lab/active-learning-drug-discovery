@@ -63,11 +63,14 @@ class ClusterBasedSelector(NBSBase):
         exploration_instances_total = np.sum(self._get_candidate_exploration_instances_per_cluster_count(cluster_ids))
         return exploration_instances_total
         
-     def _get_candidate_exploration_instances_per_cluster_count(self, cluster_ids):
+    def _get_candidate_exploration_instances_per_cluster_count(self, cluster_ids):
         clusters_idx = np.in1d(self.clusters_unlabeled, cluster_ids)
-        _, candidate_exploration_instances_per_cluster = np.unique(self.clusters_unlabeled[clusters_idx], 
+        u, candidate_exploration_instances_per_cluster = np.unique(self.clusters_unlabeled[clusters_idx], 
                                                                    return_counts=True)
-        candidate_exploration_instances_per_cluster = candidate_exploration_instances_per_cluster[np.argsort(cluster_ids)]
+        sorted_idx = np.argsort(cluster_ids)
+        rev_sorted_idx = np.zeros(len(u), dtype=int)
+        rev_sorted_idx[sorted_idx] = np.arange(len(u)) # adapted from: https://stackoverflow.com/a/10831155
+        candidate_exploration_instances_per_cluster = candidate_exploration_instances_per_cluster[rev_sorted_idx]
         return candidate_exploration_instances_per_cluster
         
     def _select_instances_from_clusters(self,
@@ -167,7 +170,8 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                      intra_cluster_dissimilarity_threshold,
                                                      feature_dist_func=feature_dist_func)
         self.select_dissimilar_instances_within_cluster = select_dissimilar_instances_within_cluster
-        self.uncertainty_method = self.uncertainty_method
+        self.uncertainty_method = uncertainty_method
+        self.uncertainty_params_list = None
         if isinstance(self.uncertainty_method, list):
             self.uncertainty_method = self.uncertainty_method[0]
             self.uncertainty_params_list = [self.feature_dist_func]
@@ -188,7 +192,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self.use_proportional_cluster_budget_for_exploration = use_proportional_cluster_budget_for_exploration
         
         # create pandas df for various cluster calculations
-        u_clusters, c_clusters = np.unique(np.hstack([self.clusters_train, self.clusters_unlabeled]),
+        u_clusters, c_clusters = np.unique(self.clusters_unlabeled,
                                            return_counts=True)
         self.total_clusters = len(u_clusters)
         self.cluster_cols = ['Cluster ID', 'Cluster Mol Count',
@@ -196,7 +200,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                              'Mean Uncertainty', 'Mean Activity Prediction',  'Mean Cost',
                              'High Activity Prediction Count',
                              'Exploitation Weight', 'Exploration Weight']
-        self.clusters_df = pd.DataFrame(data=np.nan*np.zeros((self.total_clusters, len(self.cluster_cols)),
+        self.clusters_df = pd.DataFrame(data=np.nan*np.zeros((self.total_clusters, len(self.cluster_cols))),
                                         columns=self.cluster_cols)
         self.clusters_df['Cluster ID'] = u_clusters
         self.clusters_df['Cluster Mol Count'] = c_clusters
@@ -216,22 +220,22 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
             self.clusters_df.loc[ci, 'Coverage'] = coverage_i
 
     def _compute_cluster_uncertainty(self):
-        uncertainty_unlabeled = self.trained_model.get_uncertainty(self, X=unlabeled_loader.get_features(), 
+        uncertainty_unlabeled = self.trained_model.get_uncertainty(X=self.unlabeled_loader.get_features(), 
                                                                    uncertainty_method=self.uncertainty_method,
                                                                    uncertainty_params_list=self.uncertainty_params_list)
         for ci in self.clusters_df['Cluster ID']:
             mol_idx = np.where(self.clusters_unlabeled == ci)[0]
             cluster_uncertainty = uncertainty_unlabeled[mol_idx]
-            avg_cluster_uncertainty_i = np.mean(cluster_uncertainty)
+            avg_cluster_uncertainty_i = np.nan_to_num(np.mean(cluster_uncertainty))
             self.clusters_df.loc[ci, 'Mean Uncertainty'] = avg_cluster_uncertainty_i
             
     def _compute_cluster_activity_prediction(self):
-        preds_unlabeled = self.trained_model.predict(unlabeled_loader.get_features())
+        preds_unlabeled = self.trained_model.predict(self.unlabeled_loader.get_features())
         for ci in self.clusters_df['Cluster ID']:
             mol_idx = np.where(self.clusters_unlabeled == ci)[0]
             cluster_preds = preds_unlabeled[mol_idx]
             cluster_preds = cluster_preds[cluster_preds >= self.exploitation_activity_threshold]
-            avg_cluster_activity_i = np.mean(cluster_preds)
+            avg_cluster_activity_i = np.nan_to_num(np.mean(cluster_preds))
             self.clusters_df.loc[ci, 'Mean Activity Prediction'] = avg_cluster_activity_i
             self.clusters_df.loc[ci, 'High Activity Prediction Count'] = len(cluster_preds)
             
@@ -239,40 +243,40 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         costs_unlabeled = self.unlabeled_loader.get_costs()
         for ci in self.clusters_df['Cluster ID']:
             mol_idx = np.where(self.clusters_unlabeled == ci)[0]
-            avg_cluster_cost_i = np.mean(costs_unlabeled[mol_idx])
+            avg_cluster_cost_i = np.nan_to_num(np.mean(costs_unlabeled[mol_idx]))
             self.clusters_df.loc[ci, 'Mean Cost'] = avg_cluster_cost_i
     
     def _compute_cluster_exploitation_weight(self):
-        self.clusters_df['Exploitation Weight'] = (self.exploitation_alpha * self.clusters_df['Mean Activity Prediction']) + \ 
+        self.clusters_df['Exploitation Weight'] = (self.exploitation_alpha * self.clusters_df['Mean Activity Prediction']) + \
                                                   ((1 - self.exploitation_alpha) * self.clusters_df['Coverage'] * self.clusters_df['Density'])
     
     def _compute_cluster_exploration_weight(self):
         if self.exploration_strategy == "weighted":
-            self.clusters_df['Exploration Weight'] = (self.exploration_beta * self.clusters_df['Mean Uncertainty']) + \ 
+            self.clusters_df['Exploration Weight'] = (self.exploration_beta * self.clusters_df['Mean Uncertainty']) + \
                                                      ((1 - self.exploration_beta) * (1 - self.clusters_df['Coverage']))
         elif self.exploration_strategy == "dissimilar":
-            cluster_ids = self.cluster_df['Cluster ID'].values
+            cluster_ids = self.clusters_df['Cluster ID'].values
             _, avg_cluster_dissimilarity = self._get_avg_cluster_dissimilarity(cluster_ids, 
                                                                                cluster_ids)
             self.clusters_df['Exploration Weight'] = avg_cluster_dissimilarity
             
     def _get_candidate_exploitation_clusters(self):
         qualifying_exploitation_clusters = self.clusters_df['Exploitation Weight'] >= self.exploitation_weight_threshold
-        candidate_exploitation_clusters = self.cluster_df[qualifying_exploitation_clusters]['Cluster ID'].values
+        candidate_exploitation_clusters = self.clusters_df[qualifying_exploitation_clusters]['Cluster ID'].values
         return candidate_exploitation_clusters
         
     def _get_candidate_exploration_clusters(self):
         if self.exploration_strategy == "weighted":
             qualifying_exploration_clusters = self.clusters_df['Exploration Weight'] >= self.exploration_weight_threshold
-            candidate_exploration_clusters = self.cluster_df[qualifying_exploration_clusters]['Cluster ID'].values
+            candidate_exploration_clusters = self.clusters_df[qualifying_exploration_clusters]['Cluster ID'].values
         elif self.exploration_strategy == "random":
-            candidate_exploration_clusters = np.unique(self.clusters_unlabeled)
+            candidate_exploration_clusters = self.clusters_df['Cluster ID'].values
         else: # self.exploration_strategy == "dissimilar"
-            candidate_exploration_clusters = self.cluster_df['Cluster ID'].values
+            candidate_exploration_clusters = self.clusters_df['Cluster ID'].values
         return candidate_exploration_clusters
     
     def _get_candidate_exploitation_instances_total(self, cluster_ids):
-        exploitation_instances_total = np.sum(self.clusters_df.loc[cluster_ids.values, 'High Activity Prediction Count'])
+        exploitation_instances_total = np.sum(self.clusters_df.loc[cluster_ids, 'High Activity Prediction Count'])
         return exploitation_instances_total
         
     """
@@ -283,7 +287,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         exploration_clusters_to_drop = []
         overlapping_clusters = np.intersect1d(candidate_exploitation_clusters, candidate_exploration_clusters)
         for ci in overlapping_clusters:
-            if self.cluster_df['Exploitation Weight'].loc[ci] >= self.cluster_df['Exploration Weight'].loc[ci]:
+            if self.clusters_df['Exploitation Weight'].loc[ci] >= self.clusters_df['Exploration Weight'].loc[ci]:
                 exploration_clusters_to_drop.append(ci)
             else:
                 exploitation_clusters_to_drop.append(ci)
@@ -298,21 +302,27 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                         useExploitationStrategy=True):
         selected_instances_cluster, remaining_cluster_budget = None, None
         if useExploitationStrategy:
-            selected_clusters_instances_pairs = self._select_instances_from_clusters_helper(candidate_exploitation_clusters, 
-                                                                                            exploitation_budget, 
-                                                                                            self.exploitation_dissimilarity_lambda,
-                                                                                            weight_column='Exploitation Weight',
-                                                                                            useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploitation,
-                                                                                            useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploitation,
-                                                                                            selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
+            selected_clusters_instances_pairs = self._select_instances_from_clusters_weighted(candidate_clusters, 
+                                                                                              total_budget, 
+                                                                                              self.exploitation_dissimilarity_lambda,
+                                                                                              weight_column='Exploitation Weight',
+                                                                                              useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploitation,
+                                                                                              useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploitation,
+                                                                                              selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
         else:
-            selected_clusters_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
-                                                                                     exploration_budget,
-                                                                                     self.exploration_dissimilarity_lambda,
-                                                                                     weight_column='Exploration Weight',
-                                                                                     useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploration,
-                                                                                     useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploration,
-                                                                                     selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
+            if self.exploration_strategy == "random":
+                selected_clusters_instances_pairs = self._select_instances_from_clusters_random(candidate_clusters, 
+                                                                                                total_budget,
+                                                                                                useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploration,
+                                                                                                selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
+            else:
+                selected_clusters_instances_pairs = self._select_instances_from_clusters_weighted(candidate_exploration_clusters, 
+                                                                                                  exploration_budget,
+                                                                                                  self.exploration_dissimilarity_lambda,
+                                                                                                  weight_column='Exploration Weight',
+                                                                                                  useIntraClusterThreshold=self.use_intra_cluster_threshold_for_exploration,
+                                                                                                  useProportionalClusterBudget=self.use_proportional_cluster_budget_for_exploration,
+                                                                                                  selectDissimilarInstancesWithinCluster=self.select_dissimilar_instances_within_cluster)
         return selected_clusters_instances_pairs
         
     """
@@ -335,7 +345,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         remaining_total_budget = total_budget
         if remaining_total_budget > 0:
             # select highest weighted cluster first
-            cluster_weights = self.cluster_df[weight_column].loc[candidate_clusters].values
+            cluster_weights = self.clusters_df[weight_column].loc[candidate_clusters].values
             curr_selected_cluster_idx = np.argsort(cluster_weights)[::-1][0]
             curr_selected_cluster = candidate_clusters[curr_selected_cluster_idx]
             
@@ -360,7 +370,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
             selected_clusters_so_far = [x[0] for x in selected_clusters_instances_pairs]
             
             rem_candidate_clusters = np.setdiff1d(candidate_clusters, selected_clusters_so_far)
-            cluster_weights = self.cluster_df[weight_column].loc[rem_candidate_clusters].values
+            cluster_weights = self.clusters_df[weight_column].loc[rem_candidate_clusters].values
             _, avg_cluster_dissimilarity = self._get_avg_cluster_dissimilarity(selected_clusters_so_far, 
                                                                                rem_candidate_clusters)
             # adjust cluster weights to include avg cluster dissimilarity
@@ -432,7 +442,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         return selected_clusters_instances_pairs
         
     def select_next_batch(self):
-        # populate self.cluster_df
+        # populate self.clusters_df
         self._compute_cluster_densities()
         self._compute_cluster_coverage()
         self._compute_cluster_uncertainty()

@@ -33,11 +33,11 @@ def feature_dist_func_dict():
     Returns indices of duplicated smiles from x_smiles in y_smiles. 
 """
 def get_duplicate_smiles(x_smiles, y_smiles):
-    x_canon_smiles = [Chem.MolToSmiles(Chem.MolFromSmiles(x)) for x im x_smiles]
-    y_canon_smiles = [Chem.MolToSmiles(Chem.MolFromSmiles(y)) for y im y_smiles]
+    x_canon_smiles = [Chem.MolToSmiles(Chem.MolFromSmiles(x)) for x in x_smiles]
+    y_canon_smiles = [Chem.MolToSmiles(Chem.MolFromSmiles(y)) for y in y_smiles]
     
-    smiles_df = pd.DataFrame(data=[x_canon_smiles + y_canon_smiles],
-                             col=['rdkit SMILES'])
+    smiles_df = pd.DataFrame(data=x_canon_smiles + y_canon_smiles,
+                             columns=['rdkit SMILES'])
     smiles_df = smiles_df[smiles_df['rdkit SMILES'].duplicated(keep='first')]
     idx_to_drop = smiles_df.groupby(by='rdkit SMILES').apply(lambda x: list(x.index)).tolist()
     idx_to_drop = list(np.array(idx_to_drop).flatten())
@@ -54,10 +54,9 @@ def get_avg_cluster_dissimilarity(clusters,
                                   feature_dist_func=tanimoto_dissimilarity):
     clusters_ordered_ids = candidate_cluster_ids
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
-    
+    curr_clusters_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     for selected_cid in selected_cluster_ids:
         selected_cid_instances = np.where(clusters == selected_cid)[0]
-        curr_clusters_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
         for i, candidate_cid in enumerate(candidate_cluster_ids):
             candidate_cid_instances = np.where(clusters == candidate_cid)[0]
             avg_cluster_dist = []
@@ -69,7 +68,7 @@ def get_avg_cluster_dissimilarity(clusters,
             
         clusters_avg_dissimilarity += curr_clusters_dissimilarity
     
-    clusters_avg_dissimilarity /= len(selected_cid)
+    clusters_avg_dissimilarity /= len(selected_cluster_ids)
     return clusters_ordered_ids, clusters_avg_dissimilarity
     
     

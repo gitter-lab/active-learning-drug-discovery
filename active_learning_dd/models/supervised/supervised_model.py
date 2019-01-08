@@ -6,7 +6,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from ..utils.data_utils import get_avg_cluster_dissimilarity
+import numpy as np
+
+from active_learning_dd.utils.data_utils import get_avg_cluster_dissimilarity
 
 class SupervisedModel(object):
     """Abstract base layer class.
@@ -18,18 +20,16 @@ class SupervisedModel(object):
     """
     def __init__(self, task_names):
         self.task_names = task_names
-        if not isinstance(self.task_names, list):
-            self.task_names = [self.task_names]
     
     @property
     def task_names(self):
-        return self.task_names
+        return self._task_names
         
-    @task_name.setter
+    @task_names.setter
     def task_names(self, value):
-        self.task_names = value
-        if not isinstance(self.task_names, list):
-            self.task_names = [self.task_names]
+        self._task_names = value
+        if not isinstance(self._task_names, list):
+            self._task_names = [self._task_names]
     
     def fit(self, X_train, y_train):
         raise NotImplementedError
@@ -64,11 +64,12 @@ class SupervisedModel(object):
             uncertainty = self.get_uncertainty_lc(X)
         
         clusters = np.arange(len(X))
-        avg_sim = get_avg_cluster_dissimilarity(clusters, 
-                                                X, 
-                                                clusters, 
-                                                clusters,
-                                                feature_dist_func)
+        avg_dissim = get_avg_cluster_dissimilarity(clusters, 
+                                                   X, 
+                                                   clusters, 
+                                                   clusters,
+                                                   feature_dist_func)
+        avg_sim = 1.0 - avg_dissim
         uncertainty = uncertainty * ((avg_sim)**beta)
         return uncertainty
     

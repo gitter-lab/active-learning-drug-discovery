@@ -42,15 +42,6 @@ class SklearnRF(SupervisedModel):
                                                                 random_state=self.random_state,
                                                                 oob_score=self.oob_score, 
                                                                 verbose=self.verbose)
-        
-    
-    @property
-    def task_names(self):
-        return self._task_names
-        
-    @task_name.setter
-    def task_names(self, value):
-        self._task_names = value
     
     def fit(self, X_train, y_train):
         # perform random shuffling of training data (including X_train)
@@ -68,7 +59,7 @@ class SklearnRF(SupervisedModel):
             self.model_dict[task_name].fit(X_task_ti, y_train_ti)
         
     def predict(self, X):
-        y_pred = np.zeros(shape=(X.shape[0],len(self.task_names))
+        y_pred = np.zeros(shape=(X.shape[0],len(self.task_names)))
         for ti, task_name in enumerate(self.task_names):
             y_pred[:,ti] = self.model_dict[task_name].predict_proba(X)[:,1]
         return y_pred
@@ -78,7 +69,7 @@ class SklearnRF(SupervisedModel):
         Uses kullback-Leibler divergence measure.
     """
     def get_uncertainty_qbc(self, X):
-        uncertainty = np.zeros(shape=(X.shape[0],len(self.task_names))
+        uncertainty = np.zeros(shape=(X.shape[0],len(self.task_names)))
         for ti, task_name in enumerate(self.task_names):
             consensus_preds = self.model_dict[task_name].predict_proba(X)
             n_estimators = len(self.model_dict[task_name].estimators_)

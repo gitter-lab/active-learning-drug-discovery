@@ -7,13 +7,13 @@ from __future__ import division
 from __future__ import print_function
 
 
-from . import *
+from .csv_loader import *
  
 def prepare_loader(data_loader_params, 
                    task_names):
-    data_loader = data_loader_params["data_loader_class"]
-    return data_loader_dict[data_loader](data_loader_params,
-                                         task_names)
+    data_loader_class = data_loader_params["data_loader_class"]
+    return data_loader_dict()[data_loader_class](data_loader_params,
+                                                 task_names)
     
 def data_loader_dict():
     return {"CSVLoader": prepare_CSVLoader}

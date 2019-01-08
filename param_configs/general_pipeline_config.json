@@ -1,7 +1,7 @@
 {
   "model": {
     "type": "supervised",
-    "class": "sklean_randomforest",
+    "class": "sklearn_randomforest",
     "params" : {
         "n_estimators": 50,
         "max_features": "log2",
@@ -20,7 +20,7 @@
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
-    "cluster_col_name": "Murcko Scaffold ID",
+    "cluster_col_name": "Cluster_0.3",
     "molecule_id_col_name": "Molecue ID",
     "cost_col_name": "Cost"
   },
@@ -31,14 +31,14 @@
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
-    "cluster_col_name": "Murcko Scaffold ID",
-    "molecule_id_col_name": "Molecue ID",
+    "cluster_col_name": "Cluster_0.3",
+    "molecule_id_col_name": "Molecule ID",
     "cost_col_name": "Cost"
   },
     
   "common": {
     "params_set_results_dir": "../params_results/{}_{}/",
-    "params_set_config_csv": "config.csv"
+    "params_set_config_csv": "config.csv",
     "iter_results_dir": "/iter_{}/",
     "eval_dest_file": "/{}_eval.csv",
     "batch_csv": "/{}.csv",

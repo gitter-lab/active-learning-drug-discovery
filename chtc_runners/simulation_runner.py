@@ -5,7 +5,7 @@
         python simulation_runner.py \
         --pipeline_params_json_file=../param_configs/general_pipeline_config.json \
         --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params.json \
-        --iter_num=$iter_num \ 
+        --iter_max=5 \ 
         --process_num=$process_num
 """
 
@@ -19,8 +19,9 @@ from sklearn.model_selection import ParameterGrid
 import pathlib
 import numpy as np
 import pandas as pd
+import csv 
 
-from active_learning_dd import get_next_batch
+from active_learning_dd.active_learning_dd import get_next_batch
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
 
 """
@@ -49,7 +50,7 @@ def get_unlabeled_maxes(training_loader_params,
     y_unlabeled = unlabeled_loader.get_labels()
     y_clusters = unlabeled_loader.get_clusters()
     
-    max_hits_list = np.sum(y_unlabeled, axis=1))
+    max_hits_list = np.sum(y_unlabeled, axis=1)
     max_hits_list = [min(batch_size, actives_count) for actives_count in max_hits_list]
     
     max_cluster_hits_list = [0 for _ in range(len(task_names))]
@@ -68,8 +69,8 @@ if __name__ ==  '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--pipeline_params_json_file', action="store", dest="pipeline_params_json_file", required=True)
     parser.add_argument('--nbs_params_json_file', action="store", dest="nbs_params_json_file", required=True)
-    parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=True)
-    parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=True)
+    parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=False)
+    parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=False)
     
     given_args = parser.parse_args()
     pipeline_params_json_file = given_args.pipeline_params_json_file
@@ -93,7 +94,7 @@ if __name__ ==  '__main__':
     params_set_results_dir = pipeline_config['common']['params_set_results_dir'].format(next_batch_selector_params['class'], process_num)
     params_set_config_csv = params_set_results_dir+'/'+pipeline_config['common']['params_set_config_csv']
     pathlib.Path(params_set_config_csv).parent.mkdir(parents=True, exist_ok=True)
-    with open(params_set_config_csv,'wb') as f:
+    with open(params_set_config_csv,'w') as f:
         csv_w = csv.writer(f)
         csv_w.writerow(next_batch_selector_params.keys())
         csv_w.writerow(next_batch_selector_params.values())
@@ -109,7 +110,7 @@ if __name__ ==  '__main__':
                                                                                                 next_batch_selector_params=next_batch_selector_params)
         
         # save results
-        iter_results_dir = params_set_results_dir+'/'pipeline_config['common']['iter_results_dir'].format(iter_num)
+        iter_results_dir = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(iter_num)
         eval_dest_file = iter_results_dir+'/'+pipeline_config['common']['eval_dest_file']
         pathlib.Path(eval_dest_file).parent.mkdir(parents=True, exist_ok=True)
         

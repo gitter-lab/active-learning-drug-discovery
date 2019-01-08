@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
+
 from ..utils.data_utils import get_duplicate_smiles, get_dissimilarity_matrix, feature_dist_func_dict
 
 class NBSBase(object):
@@ -26,19 +28,18 @@ class NBSBase(object):
         self.trained_model = trained_model
         self.batch_size = batch_size
         self.intra_cluster_dissimilarity_threshold = intra_cluster_dissimilarity_threshold
-        self.feature_dist_func = feature_dist_func_dict[feature_dist_func]
+        self.feature_dist_func = feature_dist_func_dict()[feature_dist_func]
         
         # remove already labeled molecules by checking training and unlabeled pool overlap
         # note duplicates determined via rdkit smiles
-        self.smiles_train = training_loader.get_smiles()
-        self.smiles_unlabeled = unlabeled_loader.get_smiles()
-        
-        idx_to_drop = get_duplicate_smiles(self.smiles_train, self.smiles_unlabeled)
-        self.unlabeled_loader.idx_to_drop(idx_to_drop)
+        smiles_train = training_loader.get_smiles()
+        smiles_unlabeled = unlabeled_loader.get_smiles()
+        idx_to_drop = get_duplicate_smiles(smiles_train, smiles_unlabeled)
+        self.unlabeled_loader.idx_to_drop = idx_to_drop
         
         # throw exception if after dropping overlapping idx, there are no more unlabeled data to select
-        if self.get_labels().shape[0] == 0:
-            raise RuntimeError('Training data and unlabaled data are overlap completely.\n' 
+        if self.unlabeled_loader.get_size()[0] == 0:
+            raise RuntimeError('Training data and unlabaled data overlap completely.\n' 
                                'This means there is no more unlabeled data to select from.')
     
     """
@@ -97,7 +98,7 @@ class NBSBase(object):
                                  budget,
                                  instance_proba=None):
         remaining_budget = budget
-        selected_instances = list(np.random.choice(original_instance_idx, size=remaining_budget, 
+        selected_instances = list(np.random.choice(original_instance_idx, size=int(remaining_budget), 
                                                    replace=False, p=instance_proba))
         remaining_budget -= len(selected_instances)
         return selected_instances, remaining_budget

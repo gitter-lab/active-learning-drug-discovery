@@ -12,7 +12,7 @@ import json
 
 from active_learning_dd.models.prepare_model import prepare_model
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
-from active_learning_dd.next_batch_selector.prepare_selector import prepare_selector
+from active_learning_dd.next_batch_selector.prepare_selector import load_next_batch_selector
 
 """
     Runs a single iteration of the active learning pipeline.
@@ -30,29 +30,33 @@ def get_next_batch(training_loader_params,
                    model_params,
                    task_names,
                    next_batch_selector_params):
-    # load training data
+    # load training and unlabeled data
     training_loader = prepare_loader(data_loader_params=training_loader_params,
                                      task_names=task_names)
     X_train, y_train = training_loader.get_features_and_labels()
+    unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
+                                      task_names=task_names)
+    X_unlabeled = unlabeled_loader.get_features()
+    print('Finished loading data...')
+    print('Training data shape X_train: {}, y_train: {}'.format(X_train.shape, y_train.shape))
+    print('Unlabeled data shape X_unlabeled: {}'.format(X_unlabeled.shape))
     
     # load and train model
-    model = load_model(model_params=model_params,
-                       task_names=task_names)
+    model = prepare_model(model_params=model_params,
+                          task_names=task_names)
     model.fit(X_train, y_train)
-    
-    # load unlabeled pool
-    unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
-                                      task_names=task_name)
-    X_unlabeled = unlabeled_loader.get_features()
+    print('Finished training model...')
     
     # select next batch
-    next_batch_selector = prepare_selector(training_loader=training_loader,
-                                           unlabeled_loader=unlabeled_loader,
-                                           trained_model=model,
-                                           next_batch_selector_params=next_batch_selector_params)
+    print('Selecting next batch...')
+    next_batch_selector = load_next_batch_selector(training_loader=training_loader,
+                                                   unlabeled_loader=unlabeled_loader,
+                                                   trained_model=model,
+                                                   next_batch_selector_params=next_batch_selector_params)
     selected_clusters_instances_pairs = next_batch_selector.select_next_batch()
     selected_exploitation_cluster_instances_pairs = selected_clusters_instances_pairs[0]
     selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]
+    print('Finished selecting next batch...')
     
     # get unlabeled dataframe slice corresponding to selected pairs
     unlabeled_df = unlabeled_loader.get_dataframe()

@@ -14,10 +14,10 @@ def load_next_batch_selector(training_loader,
                              trained_model,
                              next_batch_selector_params):
     nbs_class = next_batch_selector_params["class"]
-    return nbs_func_dict[nbs_class](training_loader,
-                                    unlabeled_loader,
-                                    trained_model,
-                                    next_batch_selector_params)
+    return nbs_func_dict()[nbs_class](training_loader,
+                                      unlabeled_loader,
+                                      trained_model,
+                                      next_batch_selector_params)
     
 def nbs_func_dict():
     return {"ClusterBasedWCSelector": prepare_ClusterBasedWCSelector,
@@ -33,7 +33,7 @@ def prepare_ClusterBasedWCSelector(training_loader,
                                            trained_model=trained_model,
                                            batch_size=next_batch_selector_params["batch_size"],
                                            intra_cluster_dissimilarity_threshold=next_batch_selector_params["intra_cluster_dissimilarity_threshold"],
-                                           feature_dist_func=next_batch_selector_params["feature_dist_func",
+                                           feature_dist_func=next_batch_selector_params["feature_dist_func"],
                                            uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                            select_dissimilar_instances_within_cluster=next_batch_selector_params["select_dissimilar_instances_within_cluster"],
                                            exploitation_activity_threshold=next_batch_selector_params["exploitation_activity_threshold"],
@@ -59,7 +59,7 @@ def prepare_InstanceBasedWCSelector(training_loader,
                                             unlabeled_loader=unlabeled_loader,
                                             trained_model=trained_model,
                                             batch_size=next_batch_selector_params["batch_size"],
-                                            feature_dist_func=next_batch_selector_params["feature_dist_func",
+                                            feature_dist_func=next_batch_selector_params["feature_dist_func"],
                                             uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                             exploitation_activity_threshold=next_batch_selector_params["exploitation_activity_threshold"],
                                             exploitation_weight_threshold=next_batch_selector_params["exploitation_weight_threshold"],
