@@ -33,21 +33,25 @@ def get_next_batch(training_loader_params,
                    task_names,
                    next_batch_selector_params):
     # load training and unlabeled data
+    start_time = time.time()
     training_loader = prepare_loader(data_loader_params=training_loader_params,
                                      task_names=task_names)
     X_train, y_train = training_loader.get_features_and_labels()
     unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
                                       task_names=task_names)
     X_unlabeled = unlabeled_loader.get_features()
-    print('Finished loading data...')
+    end_time = time.time()
+    print('Finished loading data. Took {} seconds.'.format(end_time - start_time))
     print('Training data shape X_train: {}, y_train: {}'.format(X_train.shape, y_train.shape))
     print('Unlabeled data shape X_unlabeled: {}'.format(X_unlabeled.shape))
     
     # load and train model
+    start_time = time.time()
     model = prepare_model(model_params=model_params,
                           task_names=task_names)
     model.fit(X_train, y_train)
-    print('Finished training model...')
+    end_time = time.time()
+    print('Finished training model. Took {} seconds.'.format(end_time - start_time))
     
     # select next batch
     print('Selecting next batch...')
@@ -66,8 +70,12 @@ def get_next_batch(training_loader_params,
     unlabeled_df = unlabeled_loader.get_dataframe()
     exploitation_array = unroll_cluster_instances_pairs(selected_exploitation_cluster_instances_pairs)
     exploration_array = unroll_cluster_instances_pairs(selected_exploration_cluster_instances_pairs)
-    exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]
-    exploration_df = unlabeled_df.iloc[exploration_array[:,0],:]
+    
+    exploitation_df, exploration_df = None, None
+    if exploitation_array is not None:
+        exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]
+    if exploration_array is not None:
+        exploration_df = unlabeled_df.iloc[exploration_array[:,0],:]
     
     return exploitation_df, exploration_df, exploitation_array, exploration_array
     
@@ -76,8 +84,9 @@ def get_next_batch(training_loader_params,
     Unrolls cluster instance pairs list into a 2D numpy array with cols: [instance_idx, cluster_id] 
 """
 def unroll_cluster_instances_pairs(cluster_instances_pairs):
-    instance_array = np.hstack([x[1] for x in cluster_instances_pairs]).reshape(-1,1)
-    cluster_array = np.hstack([np.repeat(x[0], len(x[1])) for x in cluster_instances_pairs]).reshape(-1,1)
-        
-    instance_cluster_array = np.hstack([instance_array, cluster_array])
-    return instance_cluster_array
+    instances_clusters_array = None
+    if len(cluster_instances_pairs) > 0:
+        instances_array = np.hstack([x[1] for x in cluster_instances_pairs]).reshape(-1,1)
+        clusters_array = np.hstack([np.repeat(x[0], len(x[1])) for x in cluster_instances_pairs]).reshape(-1,1)
+        instances_clusters_array = np.hstack([instances_array, clusters_array])
+    return instances_clusters_array

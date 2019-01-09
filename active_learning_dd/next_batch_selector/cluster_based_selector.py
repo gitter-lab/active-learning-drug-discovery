@@ -126,7 +126,10 @@ class ClusterBasedSelector(NBSBase):
         
         # start selecting exploration instances from exploration clusters
         selected_exploitation_clusters = len(selected_exploitation_cluster_instances_pairs)
-        selected_exploitation_instances_count = np.hstack([x[1] for x in selected_exploitation_cluster_instances_pairs]).shape[0]
+        selected_exploitation_instances = [x[1] for x in selected_exploitation_cluster_instances_pairs]
+        selected_exploitation_instances_count = 0
+        if len([x[1] for x in selected_exploitation_cluster_instances_pairs]) > 0:
+            selected_exploitation_instances_count = np.hstack(selected_exploitation_instances).shape[0]
         exploration_budget = self.batch_size - selected_exploitation_instances_count
         update_exploration_clusters = np.setdiff1d(candidate_exploration_clusters, selected_exploitation_clusters)
         candidate_exploration_clusters = update_exploration_clusters
@@ -340,7 +343,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                  selectDissimilarInstancesWithinCluster=True):
         print('Selecting {} clusters'.format(weight_column))
         selected_clusters_instances_pairs = []
-        curr_cluster_budget =  np.ceil(total_budget / len(candidate_clusters))
+        curr_cluster_budget =  np.nan_to_num(np.ceil(total_budget / len(candidate_clusters)))
         if useProportionalClusterBudget:
             cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
             total_unlabeled_counts = np.sum(cluster_unlabeled_counts)

@@ -143,5 +143,5 @@ def get_dissimilarity_matrix(features,
     dissimilarity_matrix = np.zeros(shape=(row_count, row_count))
     for i in range(row_count):
         for j in range(row_count):
-            dissimilarity_matrix[i,j] = feature_dist_func(features[i,:], features[j,:])
+            dissimilarity_matrix[i,j] = feature_dist_func(features[i:i+1,:], features[j:j+1,:])
     return dissimilarity_matrix

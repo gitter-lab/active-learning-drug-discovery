@@ -105,7 +105,6 @@ if __name__ ==  '__main__':
     # run iterations for this simulation
     total_time = 0
     for iter_num in range(iter_max):
-        start_time = time.time()
         print('Processing iteration number: {}...'.format(iter_num))
         # run single iteration of active learning pipeline
         exploitation_df, exploration_df, exploitation_array, exploration_array = get_next_batch(training_loader_params=pipeline_config['training_data_params'], 
@@ -113,8 +112,6 @@ if __name__ ==  '__main__':
                                                                                                 model_params=pipeline_config['model'],
                                                                                                 task_names=pipeline_config['common']['task_names'],
                                                                                                 next_batch_selector_params=next_batch_selector_params)
-        end_time = time.time()
-        print('Time it took to select next batch {} seconds.'.format(end_time-start_time))
         total_time += (end_time-start_time)
         # save results
         start_time = time.time()
@@ -122,34 +119,41 @@ if __name__ ==  '__main__':
         eval_dest_file = iter_results_dir+'/'+pipeline_config['common']['eval_dest_file']
         pathlib.Path(eval_dest_file).parent.mkdir(parents=True, exist_ok=True)
         
-        exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
-                               index=False)
-        exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploration'),
-                              index=False)
-        
         # retrieve max_hits_list, max_cluster_hits_list of the unlabeled data for this iteration
         max_hits_list, max_cluster_hits_list = get_unlabeled_maxes(training_loader_params=pipeline_config['training_data_params'], 
                                                                    unlabeled_loader_params=pipeline_config['unlabeled_data_params'],
                                                                    task_names=task_names,
                                                                    batch_size=next_batch_selector_params['batch_size'])
         
-        y_true = exploitation_df[task_names].values
-        clusters = exploitation_array[:,1]
-        evaluate_selected_batch(y_true, clusters,
-                                max_hits_list, max_cluster_hits_list,
-                                task_names, eval_dest_file.format('exploitation'),
-                                add_mean_medians=True, w_novelty=w_novelty)
-        y_true = exploration_df[task_names].values
-        clusters = exploration_array[:,1]
-        evaluate_selected_batch(y_true, clusters,
-                                max_hits_list, max_cluster_hits_list,
-                                task_names, eval_dest_file.format('exploration'),
-                                add_mean_medians=True, w_novelty=w_novelty)
-                                
-        # finally save the exploitation, exploration dataframes to training data directory for next iteration
-        pd.concat([exploitation_df, exploration_df]).to_csv(pipeline_config['training_data_params']['data_path_format'].format(iter_num+1),
-                                                            index=False)
+        if exploitation_df is not None:
+            exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
+                                   index=False)
+            y_true = exploitation_df[task_names].values
+            clusters = exploitation_array[:,1]
+            evaluate_selected_batch(y_true, clusters,
+                                    max_hits_list, max_cluster_hits_list,
+                                    task_names, eval_dest_file.format('exploitation'),
+                                    add_mean_medians=True, w_novelty=w_novelty)
+        if exploration_df is not None:
+            exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploration'),
+                                  index=False)
+            y_true = exploration_df[task_names].values
+            clusters = exploration_array[:,1]
+            evaluate_selected_batch(y_true, clusters,
+                                    max_hits_list, max_cluster_hits_list,
+                                    task_names, eval_dest_file.format('exploration'),
+                                    add_mean_medians=True, w_novelty=w_novelty)
+        
+        if exploitation_df is not None and exploration_df is not None:
+            # finally save the exploitation, exploration dataframes to training data directory for next iteration
+            pd.concat([exploitation_df, exploration_df]).to_csv(pipeline_config['training_data_params']['data_path_format'].format(iter_num+1),
+                                                                index=False)
         end_time = time.time()
         print('Time it took to evaluate batch {} seconds.'.format(end_time-start_time))
         total_time += (end_time-start_time)
         print('Finished processing iteration {}. Took {} seconds.'.format(iter_num, total_time))
+        
+        # terminate if both exploitation and exploration df are None
+        if exploitation_df is None and exploration_df is None:
+            print('Both exploitation and exploration selections are empty. Terminating program.')
+            break
