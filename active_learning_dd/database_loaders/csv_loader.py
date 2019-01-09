@@ -26,7 +26,7 @@ class CSVLoader(object):
                  smile_col_name='rdkit SMILES',
                  feature_name='Morgan FP_2_1024',
                  cluster_col_name='Murcko Scaffold ID',
-                 molecule_id_col_name='Molecule ID',
+                 molecule_id_col_name='Molecule',
                  cost_col_name='Cost'):
         self.csv_file_or_dir = csv_file_or_dir
         self.task_names = task_names

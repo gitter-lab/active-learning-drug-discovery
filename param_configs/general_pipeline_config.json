@@ -32,7 +32,7 @@
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
     "cluster_col_name": "Cluster_0.3",
-    "molecule_id_col_name": "Molecule ID",
+    "molecule_id_col_name": "Molecule",
     "cost_col_name": "Cost"
   },
     

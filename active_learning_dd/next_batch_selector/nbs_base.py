@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..utils.data_utils import get_duplicate_smiles, get_dissimilarity_matrix, feature_dist_func_dict
+from ..utils.data_utils import get_duplicate_smiles_in1d, get_dissimilarity_matrix, feature_dist_func_dict
 
 class NBSBase(object):
     """Abstract base Next Batch Selector class.
@@ -34,7 +34,7 @@ class NBSBase(object):
         # note duplicates determined via rdkit smiles
         smiles_train = training_loader.get_smiles()
         smiles_unlabeled = unlabeled_loader.get_smiles()
-        idx_to_drop = get_duplicate_smiles(smiles_train, smiles_unlabeled)
+        idx_to_drop = get_duplicate_smiles_in1d(smiles_train, smiles_unlabeled)
         self.unlabeled_loader.idx_to_drop = idx_to_drop
         
         # throw exception if after dropping overlapping idx, there are no more unlabeled data to select

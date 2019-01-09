@@ -9,6 +9,8 @@ from __future__ import print_function
 
 import argparse
 import json
+import time 
+import numpy as np
 
 from active_learning_dd.models.prepare_model import prepare_model
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
@@ -49,6 +51,7 @@ def get_next_batch(training_loader_params,
     
     # select next batch
     print('Selecting next batch...')
+    start_time = time.time()
     next_batch_selector = load_next_batch_selector(training_loader=training_loader,
                                                    unlabeled_loader=unlabeled_loader,
                                                    trained_model=model,
@@ -56,7 +59,8 @@ def get_next_batch(training_loader_params,
     selected_clusters_instances_pairs = next_batch_selector.select_next_batch()
     selected_exploitation_cluster_instances_pairs = selected_clusters_instances_pairs[0]
     selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]
-    print('Finished selecting next batch...')
+    end_time = time.time()
+    print('Finished selecting next batch. Took {} seconds.'.format(end_time - start_time))
     
     # get unlabeled dataframe slice corresponding to selected pairs
     unlabeled_df = unlabeled_loader.get_dataframe()
@@ -72,7 +76,6 @@ def get_next_batch(training_loader_params,
     Unrolls cluster instance pairs list into a 2D numpy array with cols: [instance_idx, cluster_id] 
 """
 def unroll_cluster_instances_pairs(cluster_instances_pairs):
-    cluster_instances_pairs = a[:]
     instance_array = np.hstack([x[1] for x in cluster_instances_pairs]).reshape(-1,1)
     cluster_array = np.hstack([np.repeat(x[0], len(x[1])) for x in cluster_instances_pairs]).reshape(-1,1)
         

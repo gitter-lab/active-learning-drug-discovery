@@ -4,7 +4,7 @@
     Usage:
         python simulation_runner.py \
         --pipeline_params_json_file=../param_configs/general_pipeline_config.json \
-        --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params.json \
+        --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params_test.json \
         --iter_max=5 \ 
         --process_num=$process_num
 """
@@ -20,9 +20,12 @@ import pathlib
 import numpy as np
 import pandas as pd
 import csv 
+import time
 
 from active_learning_dd.active_learning_dd import get_next_batch
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
+from active_learning_dd.utils.data_utils import get_duplicate_smiles_in1d
+from active_learning_dd.utils.evaluation import evaluate_selected_batch
 
 """
     Helper function to return max hits and max cluster hits from the 
@@ -31,33 +34,33 @@ from active_learning_dd.database_loaders.prepare_loader import prepare_loader
 """
 def get_unlabeled_maxes(training_loader_params, 
                         unlabeled_loader_params,
-                        task_name,
+                        task_names,
                         batch_size):
     # load loaders
     training_loader = prepare_loader(data_loader_params=training_loader_params,
-                                     task_names=task_name)
+                                     task_names=task_names)
     unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
-                                      task_names=task_name)
+                                      task_names=task_names)
     
     # remove already labeled molecules by checking training and unlabeled pool overlap
     # note duplicates determined via rdkit smiles
-    self.smiles_train = training_loader.get_smiles()
-    self.smiles_unlabeled = unlabeled_loader.get_smiles()
-    idx_to_drop = get_duplicate_smiles(self.smiles_train, self.smiles_unlabeled)
-    self.unlabeled_loader.idx_to_drop(idx_to_drop)
+    smiles_train = training_loader.get_smiles()
+    smiles_unlabeled = unlabeled_loader.get_smiles()
+    idx_to_drop = get_duplicate_smiles_in1d(smiles_train, smiles_unlabeled)
+    unlabeled_loader.idx_to_drop = idx_to_drop
     
     # now get labels and clusters
     y_unlabeled = unlabeled_loader.get_labels()
     y_clusters = unlabeled_loader.get_clusters()
     
-    max_hits_list = np.sum(y_unlabeled, axis=1)
+    max_hits_list = np.sum(y_unlabeled, axis=0)
     max_hits_list = [min(batch_size, actives_count) for actives_count in max_hits_list]
     
     max_cluster_hits_list = [0 for _ in range(len(task_names))]
     for ti in range(len(task_names)):
         # Get the clusters with actives
         active_indices = np.where(y_unlabeled[:,ti] == 1)[0]
-        clusters_with_actives_ti = clusters_ti[active_indices]
+        clusters_with_actives_ti = y_clusters[active_indices]
         max_cluster_hits_list[ti] = min(batch_size, 
                                         np.unique(clusters_with_actives_ti).shape[0])
     
@@ -100,7 +103,9 @@ if __name__ ==  '__main__':
         csv_w.writerow(next_batch_selector_params.values())
     
     # run iterations for this simulation
+    total_time = 0
     for iter_num in range(iter_max):
+        start_time = time.time()
         print('Processing iteration number: {}...'.format(iter_num))
         # run single iteration of active learning pipeline
         exploitation_df, exploration_df, exploitation_array, exploration_array = get_next_batch(training_loader_params=pipeline_config['training_data_params'], 
@@ -108,15 +113,18 @@ if __name__ ==  '__main__':
                                                                                                 model_params=pipeline_config['model'],
                                                                                                 task_names=pipeline_config['common']['task_names'],
                                                                                                 next_batch_selector_params=next_batch_selector_params)
-        
+        end_time = time.time()
+        print('Time it took to select next batch {} seconds.'.format(end_time-start_time))
+        total_time += (end_time-start_time)
         # save results
+        start_time = time.time()
         iter_results_dir = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(iter_num)
         eval_dest_file = iter_results_dir+'/'+pipeline_config['common']['eval_dest_file']
         pathlib.Path(eval_dest_file).parent.mkdir(parents=True, exist_ok=True)
         
         exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
                                index=False)
-        exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
+        exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploration'),
                               index=False)
         
         # retrieve max_hits_list, max_cluster_hits_list of the unlabeled data for this iteration
@@ -141,3 +149,7 @@ if __name__ ==  '__main__':
         # finally save the exploitation, exploration dataframes to training data directory for next iteration
         pd.concat([exploitation_df, exploration_df]).to_csv(pipeline_config['training_data_params']['data_path_format'].format(iter_num+1),
                                                             index=False)
+        end_time = time.time()
+        print('Time it took to evaluate batch {} seconds.'.format(end_time-start_time))
+        total_time += (end_time-start_time)
+        print('Finished processing iteration {}. Took {} seconds.'.format(iter_num, total_time))
