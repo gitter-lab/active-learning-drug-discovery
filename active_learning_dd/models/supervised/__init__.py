@@ -1,1 +1,1 @@
-__all__ = ["sklearn_randomforest"]
+__all__ = ["sklearn_randomforest", "neural_network"]

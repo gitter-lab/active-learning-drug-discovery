@@ -1,16 +1,16 @@
 """
-    Script for generating clusters using distance function.
+    Script for generating the dissimilarity matrix.
     csv_file_or_dir: specifies a single file or path with format of csv files to be loaded. e.g: /path/iter_{}.csv or /path/iter_*.csv.
-    output_dir: where to save the modified input csv files with cluster information added.
+    output_dir: where to save the memmap file of the dissimilarity matrix.
     feature_name: specifies the column name for features in the csv file.
     cutoff: instances within this cutoff distance belong to the same cluster.
     dist_function: distance function to use.
     process: not used; can be ignored.
     
         Usage:
-        python generate_clustering.py \
-        --csv_file_or_dir=../datasets/file_{}.csv \
-        --output_dir=../datasets/ \
+        python generate_dissimilarity_matrix.py \
+        --csv_file_or_dir=../../datasets/lc_clusters_cv_96/unlabeled_{}.csv \
+        --output_dir=../../datasets/ \
         --feature_name="Morgan FP_2_1024" \
         --cutoff=0.3 \
         --dist_function=tanimoto_dissimilarity \
@@ -33,24 +33,24 @@ def get_features(X_data):
     X_data = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in X_data]).astype(float) # this is from: https://stackoverflow.com/a/29091970
     return X_data
         
-def cluster_features(X, dist_func, cutoff=0.2):
-    # first generate the distance matrix
+def compute_dissimilarity_matrix(X, memmap_filename, dist_func, cutoff=0.2):
     n_instances = len(X)
-    dists = np.zeros(shape=(n_instances*(n_instances-1)//2,), dtype='float16')
-    dists = list(dists)
-    nSoFar=0 
+    dists = np.memmap(memmap_filename, dtype='float16', mode='w+', shape=(n_instances, n_instances))
+    nSoFar=0
+    total_comps = n_instances*(n_instances-1)//2
     for col in range(1, n_instances): 
         for row in range(col): 
             X_col = X[col] 
             X_row = X[row] 
             dist_col_row = dist_func(X_col, X_row) 
-            dists[nSoFar] = dist_col_row 
+            dists[row, col] = dist_col_row
+            dists[col, row] = dist_col_row
             nSoFar += 1
+            print('{} out of {}'.format(nSoFar, total_comps))
 
     # now cluster the data:
-    clusters = Butina.ClusterData(dists, n_instances, 
-                                  cutoff, isDistData=True)
-    return clusters
+    dists.flush()  
+    return dists
     
 np.random.seed(1103)
 if __name__ ==  '__main__':
@@ -79,22 +79,6 @@ if __name__ ==  '__main__':
     X = get_features(data_df[feature_name].values) 
     dist_func = feature_dist_func_dict()[dist_function]
     
-    # cluster
-    clusters = cluster_features(X, dist_func, cutoff)
-    
-    # save resulting cluster ids
-    data_df_cluster_ids = np.zeros(shape=(X.shape[0],), dtype=np.uint)
-    for cluster_idx, cluster_tuple in enumerate(clusters):
-        for instance_idx in cluster_tuple:
-            data_df_cluster_ids[instance_idx] = cluster_idx
-                
-    data_df['Cluster_{}'.format(cutoff)] = data_df_cluster_ids
-    
-    start = 0
-    for i in range(len(csv_files_list)):
-        output_file_postfix = csv_files_list[i].split('/')[-1]
-        curr_size = df_list[i].shape[0]
-        end = start + curr_size
-        data_df_slice_df = data_df.iloc[start:end,:]
-        start = end
-        data_df_slice_df.to_csv(output_dir+'/{}'.format(output_file_postfix))
+    # compute_dissimilarity_matrix
+    memmap_filename = output_dir + '/dissimilarity_matrix_{}_{}.dat'.format(len(X), len(X))
+    compute_dissimilarity_matrix(X, memmap_filename, dist_func, cutoff)

@@ -55,7 +55,8 @@ class CSVLoader(object):
     def _load_dataframe(self):
         csv_files_list = glob.glob(self.csv_file_or_dir.format('*'))
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
-        data_df = pd.concat(df_list)
+        data_df = pd.concat(df_list, sort=False)
+        data_df = data_df.reset_index(drop=True)
         if self.idx_to_drop is not None:
             data_df = data_df.drop(data_df.index[self.idx_to_drop])
         return data_df

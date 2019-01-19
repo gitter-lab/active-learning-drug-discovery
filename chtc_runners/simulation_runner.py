@@ -112,7 +112,6 @@ if __name__ ==  '__main__':
                                                                                                 model_params=pipeline_config['model'],
                                                                                                 task_names=pipeline_config['common']['task_names'],
                                                                                                 next_batch_selector_params=next_batch_selector_params)
-        total_time += (end_time-start_time)
         # save results
         start_time = time.time()
         iter_results_dir = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(iter_num)
@@ -144,7 +143,7 @@ if __name__ ==  '__main__':
                                     task_names, eval_dest_file.format('exploration'),
                                     add_mean_medians=True, w_novelty=w_novelty)
         
-        if exploitation_df is not None and exploration_df is not None:
+        if exploitation_df is not None or exploration_df is not None:
             # finally save the exploitation, exploration dataframes to training data directory for next iteration
             pd.concat([exploitation_df, exploration_df]).to_csv(pipeline_config['training_data_params']['data_path_format'].format(iter_num+1),
                                                                 index=False)

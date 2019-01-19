@@ -4,7 +4,10 @@
   
     "batch_size": [96, 384, 1536],
     
+    "exploitation_use_quantile_for_activity": [false, true],
+    "exploitation_sample_actives_from_clusters": [false, true],
     "exploitation_activity_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_use_quantile_for_weight": [false, true],
     "exploitation_weight_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
     "exploitation_alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
     "exploitation_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
@@ -12,6 +15,7 @@
     "use_proportional_cluster_budget_for_exploitation": [false, true],
     
     "exploration_strategy": ["weighted", "random", "dissimilar"],
+    "exploration_use_quantile_for_weight": [false, true],
     "exploration_weight_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
     "exploration_beta": [0.0, 0.25, 0.5, 0.75, 1.0],
     "exploration_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],

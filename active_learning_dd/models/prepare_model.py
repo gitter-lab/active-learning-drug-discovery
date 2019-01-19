@@ -18,7 +18,8 @@ def prepare_model(model_params,
     return model_func_dict()[model_type][model_class](model_params, task_names)
     
 def model_func_dict():
-    return {"supervised": {"sklearn_randomforest": prepare_rf_model},
+    return {"supervised": {"sklearn_randomforest": prepare_rf_model,
+                           "simple_nn": prepare_simple_nn},
             "unsupervised": {}}
 
     
@@ -33,3 +34,11 @@ def prepare_rf_model(rf_params, task_names):
                                              rf_params['oob_score'],
                                              rf_params['verbose'])
     return rf_model
+    
+def prepare_simple_nn(nn_params, task_names):
+    nn_model = neural_network.SimpleNN(task_names,
+                                       nn_params['n_features'],
+                                       nn_params['batch_size'],
+                                       nn_params['epochs'],
+                                       nn_params['verbose'])
+    return nn_model

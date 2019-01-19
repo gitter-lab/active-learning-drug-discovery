@@ -30,6 +30,8 @@ def _get_metrics_names(n_tests_list):
 def _eval_on_metrics(y_true, y_preds, clusters,
                      max_hits_list, max_cluster_hits_list,
                      add_mean_medians, w_novelty):
+    max_hits_list = [min(x, y_true.shape[0]) for x in max_hits_list]
+    max_cluster_hits_list = [min(x, y_true.shape[0]) for x in max_cluster_hits_list]
     n_tests_list = [y_true.shape[0]]
     metrics_names = _get_metrics_names(n_tests_list)
    
@@ -37,8 +39,8 @@ def _eval_on_metrics(y_true, y_preds, clusters,
     novel_n_hits_mat, norm_hits_ratio_mat, n_hits_mat, max_n_hits_mat, norm_cluster_hits_ratio_mat, n_cluster_hits_mat, max_n_cluster_hits_mat = novel_n_hits(y_true, y_preds, clusters, 
                                                                                                                                                               n_tests_list, w_novelty)
     # modify the maxes and ratios
-    max_n_hits_mat = np.array(max_hits_list).reshape(-1,1)
-    max_n_cluster_hits_mat = np.array(max_cluster_hits_list).reshape(-1,1)
+    max_n_hits_mat = np.array(max_hits_list).reshape(-1,y_true.shape[1])
+    max_n_cluster_hits_mat = np.array(max_cluster_hits_list).reshape(-1,y_true.shape[1])
     norm_hits_ratio_mat = n_hits_mat / max_n_hits_mat
     norm_cluster_hits_ratio_mat = n_cluster_hits_mat / max_n_cluster_hits_mat
     

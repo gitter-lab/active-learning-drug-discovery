@@ -18,7 +18,11 @@ import pandas as pd
     Compares each row of X with each row of Y.
 """
 def tanimoto_dissimilarity(X, Y, X_batch_size=200, Y_batch_size=200):
-    n_features = X.shape[-1]    
+    n_features = X.shape[-1]
+    if X.ndim == 1:
+        X = X.reshape(-1, n_features)
+    if Y.ndim == 1:
+        Y = Y.reshape(-1, n_features)    
     tan_sim = []
     X_total_batches = X.shape[0] // X_batch_size + 1
     Y_total_batches = Y.shape[0] // Y_batch_size + 1
@@ -55,6 +59,7 @@ def get_duplicate_smiles_in1d(x_smiles, y_smiles):
     
     y_duplicates = np.in1d(y_canon_smiles, x_canon_smiles)
     idx_to_drop = list(np.arange(len(y_canon_smiles))[y_duplicates])
+    
     return idx_to_drop
     
 """
