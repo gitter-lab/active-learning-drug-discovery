@@ -182,10 +182,11 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self.select_dissimilar_instances_within_cluster = select_dissimilar_instances_within_cluster
         self.uncertainty_method = uncertainty_method
         self.uncertainty_params_list = None
-        if isinstance(self.uncertainty_method, list):
-            self.uncertainty_method = self.uncertainty_method[0]
-            self.uncertainty_params_list = [self.feature_dist_func]
-            self.uncertainty_params_list += self.uncertainty_method[1:]
+        if isinstance(uncertainty_method, list):
+            self.uncertainty_method = uncertainty_method[0]
+            if len(uncertainty_method) > 1:
+                self.uncertainty_params_list = [self.feature_dist_func]
+                self.uncertainty_params_list += uncertainty_method[1:]
         
         self.exploitation_use_quantile_for_activity = exploitation_use_quantile_for_activity
         self.exploitation_sample_actives_from_clusters = exploitation_sample_actives_from_clusters

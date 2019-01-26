@@ -1,5 +1,5 @@
 """
-    Class wrapper for sklearn random forest models. Adds extra wrapper functions.
+    Classes for neural network models. 
 """
 
 from __future__ import absolute_import
