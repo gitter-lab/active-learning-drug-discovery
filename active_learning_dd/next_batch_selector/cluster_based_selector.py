@@ -21,7 +21,8 @@ class ClusterBasedSelector(NBSBase):
                  trained_model,
                  batch_size=384,
                  intra_cluster_dissimilarity_threshold=0.0,
-                 feature_dist_func="tanimoto_dissimilarity"):
+                 feature_dist_func="tanimoto_dissimilarity",
+                 use_consensus_distance=False):
         super(ClusterBasedSelector, self).__init__(training_loader,
                                                    unlabeled_loader,
                                                    trained_model,
@@ -35,12 +36,30 @@ class ClusterBasedSelector(NBSBase):
         # keep track of clusters selected already
         self.selected_exploitation_clusters = []
         self.selected_exploration_clusters = []
+        
+        self.use_consensus_distance = use_consensus_distance
     
     def _get_avg_cluster_dissimilarity(self, selected_cluster_ids, candidate_cluster_ids):
-        features_train = self.training_loader.get_features()
-        features_unlabeled = self.unlabeled_loader.get_features()
-        features_train_unlabeled = np.vstack([features_train, features_unlabeled])
+        features_train_unlabeled = np.vstack([self.training_loader.get_features(), 
+                                              self.unlabeled_loader.get_features()])
         clusters_train_unlabeled = np.hstack([self.clusters_train, self.clusters_unlabeled])
+        
+        cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids])
+        features_train_unlabeled = features_train_unlabeled[cid_instances]
+        clusters_train_unlabeled = clusters_train_unlabeled[cid_instances]
+            
+        if self.use_consensus_distance:
+            consensus_features = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids), 
+                                                 features_train_unlabeled.shape[1]))
+            consensus_clusters = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids),))
+            for i, cid in enumrate(np.hstack([selected_cluster_ids, candidate_cluster_ids])):
+                cid_instances = np.where(clusters_train_unlabeled == cid)[0]
+                cluster_features = features_train_unlabeled[cid_instances,:]
+                consensus_features[i,:] = ((np.sum(cluster_features, axis=0) / cluster_features.shape[0]) >= 0.5).astype(float)
+                consensus_clusters[i] = cid
+                
+            features_train_unlabeled = consensus_features
+            clusters_train_unlabeled = consensus_clusters
         
         clusters_ordered_ids, avg_cluster_dissimilarity = get_avg_cluster_dissimilarity(clusters_train_unlabeled, 
                                                                                         features_train_unlabeled, 
@@ -155,6 +174,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                  batch_size=384,
                  intra_cluster_dissimilarity_threshold=0.0,
                  feature_dist_func="tanimoto_dissimilarity",
+                 use_consensus_distance=False,
                  uncertainty_method="least_confidence",
                  select_dissimilar_instances_within_cluster=True,
                  exploitation_use_quantile_for_activity=False,
@@ -178,7 +198,8 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                      trained_model,
                                                      batch_size,
                                                      intra_cluster_dissimilarity_threshold,
-                                                     feature_dist_func=feature_dist_func)
+                                                     feature_dist_func=feature_dist_func",
+                                                     use_consensus_distance=use_consensus_distance)
         self.select_dissimilar_instances_within_cluster = select_dissimilar_instances_within_cluster
         self.uncertainty_method = uncertainty_method
         self.uncertainty_params_list = None

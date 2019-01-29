@@ -25,6 +25,7 @@
     "select_dissimilar_instances_within_cluster": [false, true],
     "intra_cluster_dissimilarity_threshold": [0.0, 0.05, 0.1, 0.15, 0.2],
     "feature_dist_func": ["tanimoto_dissimilarity"],
+    "use_consensus_distance": [false, true],
     
     "uncertainty_method": [["least_confidence"], 
                            ["query_by_committee"], 
@@ -54,6 +55,7 @@
     "select_dissimilar_instances_within_cluster": [0.25, 0.75],
     "intra_cluster_dissimilarity_threshold": [0.0, 0.3, 0.25, 0.25, 0.2],
     "feature_dist_func": [1.0],
+    "use_consensus_distance": [0.5, 0.5],
     
     "uncertainty_method": [0.25, 0.25, 0.25, 0.25]
   }
