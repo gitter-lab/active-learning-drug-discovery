@@ -51,7 +51,7 @@ if __name__ ==  '__main__':
         next_batch_selector_params = get_random_params(nbs_config, rnd_seed=process_num)
     else:
         next_batch_selector_params = get_param_from_dist(nbs_config, rnd_seed=process_num)
-        
+    
     params_set_results_dir = pipeline_config['common']['params_set_results_dir'].format(next_batch_selector_params['class'], process_num)
     params_set_config_csv = params_set_results_dir+'/'+pipeline_config['common']['params_set_config_csv']
     pathlib.Path(params_set_config_csv).parent.mkdir(parents=True, exist_ok=True)

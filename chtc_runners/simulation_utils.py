@@ -69,9 +69,9 @@ def get_random_params(nbs_config,
     next_batch_selector_params = nbs_config["next_batch_selector_params"]
     batch_sizes = next_batch_selector_params.pop("batch_size", None)
     # sample random param 
-    param_grid = ParameterGrid(next_batch_selector_params)
+    param_grid = SimulationParameterGrid(next_batch_selector_params)
     np.random.seed(rnd_seed)
-    param_idx = np.random.randint(len(param_grid), size=1)[0]
+    param_idx = np.random.randint(len(param_grid), size=1, dtype='int64')[0]
     next_batch_selector_params = param_grid[param_idx]
     next_batch_selector_params["batch_size"] = batch_sizes
     return next_batch_selector_params
@@ -86,7 +86,8 @@ def get_param_from_dist(nbs_config,
     nbs_params_probas = nbs_config["nbs_params_probas"]
     # sample random param 
     np.random.seed(rnd_seed)
-    for param in nbs_params_probas:
+    sorted_params = sorted(nbs_params_probas.keys())
+    for param in sorted_params:
         param_choices = nbs_params[param]
         param_probas = nbs_params_probas[param]
         param_sampled_choice = np.random.choice(param_choices, size=1, p=param_probas)[0]
@@ -123,8 +124,8 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
                                                                                     unlabeled_loader_params=pipeline_config['unlabeled_data_params'],
                                                                                     task_names=task_names,
                                                                                     batch_size=batch_size)
-    training_clusters = prepare_loader(data_loader_params=pipeline_config['training_data_params'],
-                                       task_names=task_names).get_clusters()
+    train_clusters = prepare_loader(data_loader_params=pipeline_config['training_data_params'],
+                                    task_names=task_names).get_clusters()
 
     if exploitation_df is not None:
         exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
@@ -205,3 +206,40 @@ def summarize_simulation(params_set_results_dir,
                             summary_df[[m for m in summary_df.columns if 'ratio' in m]].mean()]).to_frame().T
     summary_df.index = ['total']
     summary_df.read_csv(summary_dest_file, index=True)
+    
+class SimulationParameterGrid(ParameterGrid):
+    """
+    Custom parameter grid class due to sklearn's ParameterGrid restriction to int32.
+    """
+
+    def __getitem__(self, ind):
+        """
+        Same as sklearn's ParameterGrid class but np.product(sizes, dtype='int64').
+        """
+        # This is used to make discrete sampling without replacement memory
+        # efficient.
+        for sub_grid in self.param_grid:
+            # XXX: could memoize information used here
+            if not sub_grid:
+                if ind == 0:
+                    return {}
+                else:
+                    ind -= 1
+                    continue
+
+            # Reverse so most frequent cycling parameter comes first
+            keys, values_lists = zip(*sorted(sub_grid.items())[::-1])
+            sizes = [len(v_list) for v_list in values_lists]
+            total = np.product(sizes, dtype='int64')
+            
+            if ind >= total:
+                # Try the next grid
+                ind -= total
+            else:
+                out = {}
+                for key, v_list, n in zip(keys, values_lists, sizes):
+                    ind, offset = divmod(ind, n)
+                    out[key] = v_list[offset]
+                return out
+
+        raise IndexError('SimulationParameterGrid index out of range')

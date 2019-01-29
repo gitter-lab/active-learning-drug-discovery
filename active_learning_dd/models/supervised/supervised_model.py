@@ -68,7 +68,8 @@ class SupervisedModel(object):
                                                    X, 
                                                    clusters, 
                                                    clusters,
-                                                   feature_dist_func)
+                                                   feature_dist_func,
+                                                   candidate_cluster_batch_size=1000)
         avg_sim = 1.0 - avg_dissim
         uncertainty = uncertainty * ((avg_sim)**beta)
         return uncertainty

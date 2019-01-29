@@ -44,7 +44,7 @@ class ClusterBasedSelector(NBSBase):
                                               self.unlabeled_loader.get_features()])
         clusters_train_unlabeled = np.hstack([self.clusters_train, self.clusters_unlabeled])
         
-        cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids])
+        cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids]))
         features_train_unlabeled = features_train_unlabeled[cid_instances]
         clusters_train_unlabeled = clusters_train_unlabeled[cid_instances]
             
@@ -198,7 +198,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                      trained_model,
                                                      batch_size,
                                                      intra_cluster_dissimilarity_threshold,
-                                                     feature_dist_func=feature_dist_func",
+                                                     feature_dist_func=feature_dist_func,
                                                      use_consensus_distance=use_consensus_distance)
         self.select_dissimilar_instances_within_cluster = select_dissimilar_instances_within_cluster
         self.uncertainty_method = uncertainty_method
@@ -241,7 +241,6 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self.clusters_df['Cluster ID'] = u_clusters
         self.clusters_df['Cluster Mol Count'] = c_clusters
         self.clusters_df.index = self.clusters_df['Cluster ID']
-        
         
     def _compute_cluster_densities(self):
         total_molecule_count = np.sum(self.clusters_df['Cluster Mol Count'])

@@ -106,7 +106,6 @@ class NBSBase(object):
         exploitation_ratio = candidate_exploitation_instances_total / (candidate_exploitation_instances_total + candidate_exploration_instances_total) 
         exploitation_budget = np.floor(exploitation_ratio * self.batch_size)
         return exploitation_budget
-        
     
     def select_next_batch(self):
         raise NotImplementedError
