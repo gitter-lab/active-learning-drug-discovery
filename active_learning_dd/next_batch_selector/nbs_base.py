@@ -30,12 +30,8 @@ class NBSBase(object):
         self.intra_cluster_dissimilarity_threshold = intra_cluster_dissimilarity_threshold
         self.feature_dist_func = feature_dist_func_dict()[feature_dist_func]
         
-        # remove already labeled molecules by checking training and unlabeled pool overlap
-        # note duplicates determined via rdkit smiles
-        smiles_train = training_loader.get_smiles()
-        smiles_unlabeled = unlabeled_loader.get_smiles()
-        idx_to_drop = get_duplicate_smiles_in1d(smiles_train, smiles_unlabeled)
-        self.unlabeled_loader.idx_to_drop = idx_to_drop
+        # remove already labeled data
+        self.unlabeled_loader.drop_duplicates_via_smiles(self.training_loader.get_smiles())
         
         # throw exception if after dropping overlapping idx, there are no more unlabeled data to select
         if self.unlabeled_loader.get_size()[0] == 0:

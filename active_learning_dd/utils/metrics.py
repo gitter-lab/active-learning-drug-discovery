@@ -180,8 +180,14 @@ def _metric_calc_with_clusters(y_true, y_pred, clusters, metric_func):
         y_true = y_true.reshape(-1, 1)
     if y_pred.ndim == 1:
         y_pred = y_pred.reshape(-1, 1)
-    if clusters.ndim == 1:
-        clusters = clusters.reshape(-1, 1)
+    
+    if isinstance(clusters, list):
+        for i in range(len(clusters)):
+            if clusters[i].ndim == 1:
+                clusters[i] = clusters[i].reshape(-1, 1)
+    else:
+        if clusters.ndim == 1:
+            clusters = clusters.reshape(-1, 1)
     
     num_tasks = y_true.shape[1]
     metric_res = np.zeros(num_tasks)
@@ -193,7 +199,12 @@ def _metric_calc_with_clusters(y_true, y_pred, clusters, metric_func):
         non_missing_labels_ti = np.where(~np.isnan(y_true_ti))[0] 
         y_true_ti = y_true_ti[non_missing_labels_ti]
         y_pred_ti = y_pred_ti[non_missing_labels_ti]
-        clusters_ti = clusters[non_missing_labels_ti]
+        if isinstance(clusters, list):
+            for i in range(len(clusters)):
+                train_clusters, test_clusters = clusters
+                clusters_ti = [train_clusters, test_clusters[non_missing_labels_ti]]
+        else:
+            clusters_ti = clusters[non_missing_labels_ti]
         
         try:
             metric_res[ti] = metric_func(y_true_ti, y_pred_ti, clusters_ti)
@@ -251,15 +262,16 @@ def max_n_cluster_hits_calc(y_true, y_pred, clusters, n_tests_list):
 
  
 """
-    Computes max number of clusetrs with actives found in the top n_tests.
+    Computes max number of clusters with actives found in the top n_tests.
 """   
 def max_n_cluster_hits_calc_at_n_tests(y_true, y_pred, clusters, n_tests):
     def max_n_cluster_hits(y_true_ti, y_pred_ti, clusters_ti):
         # Get the clusters with actives
         active_indices = np.where(y_true_ti == 1)[0]
         clusters_with_actives_ti = clusters_ti[active_indices]
-        max_clusters_with_actives_ti = min(active_indices.shape[0], 
-                                           np.unique(clusters_with_actives_ti).shape[0])
+        num_clusters_with_actives_ti = np.unique(clusters_with_actives_ti).shape[0]
+        max_clusters_with_actives_ti = min(num_clusters_with_actives_ti, 
+                                           n_tests)
         return max_clusters_with_actives_ti
     return _metric_calc_with_clusters(y_true, y_pred, clusters, max_n_cluster_hits)
 
@@ -293,3 +305,69 @@ def novel_n_hits(y_true, y_pred, clusters, n_tests_list, w=0.5):
     novel_n_hits_mat = (w * norm_hits_ratio_mat) + ((1-w) * norm_cluster_hits_ratio_mat)
     return novel_n_hits_mat, norm_hits_ratio_mat, n_hits_mat, max_n_hits_mat, norm_cluster_hits_ratio_mat, n_cluster_hits_mat, max_n_cluster_hits_mat
     
+    
+"""
+    Computes novel cluster hits at the n_tests. 
+"""   
+def novel_cluster_hits_calc_at_n_tests(y_true, y_pred, clusters, n_tests):
+    def novel_cluster_hits(y_true_ti, y_pred_ti, clusters_ti):
+        train_clusters, clusters_ti = clusters_ti
+        indices = np.argsort(y_pred_ti, axis=0)[::-1][:n_tests]
+        y_true_ti = y_true_ti[indices]
+        clusters_ti = clusters_ti[indices]
+        
+        # Get the clusters with actives
+        active_indices = np.where(y_true_ti == 1)[0]
+        clusters_with_actives_ti = clusters_ti[active_indices]
+        unique_clusters_with_actives_ti = np.unique(clusters_with_actives_ti)
+        novel_clusters_with_actives_ti = np.setdiff1d(unique_clusters_with_actives_ti,
+                                                      train_clusters)
+        num_novel_clusters_with_actives_ti = novel_clusters_with_actives_ti.shape[0]
+        return num_novel_clusters_with_actives_ti
+        
+    return _metric_calc_with_clusters(y_true, y_pred, clusters, novel_cluster_hits)
+
+"""
+    Computes novel clusters with actives found in the top n_tests in n_tests_list.
+"""   
+def novel_cluster_hits_calc(y_true, y_pred, clusters, n_tests_list):
+    return _metric_with_clusters_and_param_list(y_true, y_pred, clusters, 
+                                                n_tests_list, 
+                                                novel_cluster_hits_calc_at_n_tests)
+                                                
+"""
+    Computes max number of novel clusters with actives found in the top n_tests.
+"""   
+def max_novel_cluster_hits_calc_at_n_tests(y_true, y_pred, clusters, n_tests):
+    def max_novel_cluster_hits(y_true_ti, y_pred_ti, clusters_ti):
+        train_clusters, clusters_ti = clusters_ti
+        # Get the clusters with actives
+        active_indices = np.where(y_true_ti == 1)[0]
+        clusters_with_actives_ti = clusters_ti[active_indices]
+        unique_clusters_with_actives_ti = np.unique(clusters_with_actives_ti)
+        novel_clusters_with_actives_ti = np.setdiff1d(unique_clusters_with_actives_ti,
+                                                      train_clusters)
+        num_novel_clusters_with_actives_ti = novel_clusters_with_actives_ti.shape[0]
+        max_novel_clusters_with_actives_ti = min(num_novel_clusters_with_actives_ti, 
+                                                 n_tests)
+        return max_novel_clusters_with_actives_ti
+    return _metric_calc_with_clusters(y_true, y_pred, clusters, max_novel_cluster_hits)
+    
+"""
+    Computes max number of novel clusters with actives found in the top n_tests in n_tests_list.
+"""   
+def max_novel_cluster_hits_calc(y_true, y_pred, clusters, n_tests_list):
+    return _metric_with_clusters_and_param_list(y_true, y_pred, clusters,
+                                                n_tests_list, 
+                                                max_novel_cluster_hits_calc_at_n_tests)
+    
+"""
+    Computes novel cluster hits at the n_tests in n_tests_list. 
+    clusters = [train_clusters, test_clusters]
+    novel_cluster_n_hits is the number of unique test_clusters not in train_clusters.
+"""       
+def novel_cluster_n_hits(y_true, y_pred, clusters, n_tests_list): 
+    novel_cluster_hits_mat = novel_cluster_hits_calc(y_true, y_pred, clusters, n_tests_list)
+    max_novel_cluster_hits_mat = max_novel_cluster_hits_calc(y_true, y_pred, clusters, n_tests_list) 
+    norm_novel_cluster_hits_ratio_mat = novel_cluster_hits_mat / max_novel_cluster_hits_mat
+    return novel_cluster_hits_mat, max_novel_cluster_hits_mat, norm_novel_cluster_hits_ratio_mat

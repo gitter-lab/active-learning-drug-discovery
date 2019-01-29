@@ -11,6 +11,8 @@ import numpy as np
 import os
 import glob
 
+from ..utils.data_utils import get_duplicate_smiles_in1d
+
 class CSVLoader(object):
     """
     # Properties
@@ -51,7 +53,14 @@ class CSVLoader(object):
         self._idx_to_drop = value
         if self._idx_to_drop is not None and not isinstance(self._idx_to_drop, list):
             self._idx_to_drop = [self._idx_to_drop]
-        
+    
+    # remove already labeled molecules by checking other and unlabeled pool overlap
+    # note duplicates determined via rdkit smiles
+    def drop_duplicates_via_smiles(self, smiles_others):
+        smiles_unlabeled = self.get_smiles()
+        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_unlabeled)
+        self.idx_to_drop = idx_to_drop
+		
     def _load_dataframe(self):
         csv_files_list = glob.glob(self.csv_file_or_dir.format('*'))
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]

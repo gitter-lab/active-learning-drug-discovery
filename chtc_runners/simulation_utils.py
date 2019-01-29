@@ -13,6 +13,9 @@ import pathlib
 import numpy as np
 import pandas as pd
 
+from active_learning_dd.utils.evaluation import eval_on_metrics
+from active_learning_dd.database_loaders.prepare_loader import prepare_loader
+
 """
     Helper function to return max hits and max cluster hits from the 
     unlabeled data. Note this is used in the simulation since in a real
@@ -22,37 +25,40 @@ def get_unlabeled_maxes(training_loader_params,
                         unlabeled_loader_params,
                         task_names,
                         batch_size):
+    if not isinstance(task_names, list):
+        task_names = [task_names]
     # load loaders
     training_loader = prepare_loader(data_loader_params=training_loader_params,
                                      task_names=task_names)
     unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
                                       task_names=task_names)
-    
-    # remove already labeled molecules by checking training and unlabeled pool overlap
-    # note duplicates determined via rdkit smiles
-    smiles_train = training_loader.get_smiles()
-    smiles_unlabeled = unlabeled_loader.get_smiles()
-    idx_to_drop = get_duplicate_smiles_in1d(smiles_train, smiles_unlabeled)
-    unlabeled_loader.idx_to_drop = idx_to_drop
-    
+    # remove already labeled data
+    unlabeled_loader.drop_duplicates_via_smiles(training_loader.get_smiles())
+
     # now get labels and clusters
     y_unlabeled = unlabeled_loader.get_labels()
-    y_clusters = unlabeled_loader.get_clusters()
-    
+    unlabeled_clusters = unlabeled_loader.get_clusters()
+    training_clusters = training_loader.get_clusters()
+
     max_hits_list = np.sum(y_unlabeled, axis=0)
     max_hits_list = [min(batch_size, actives_count) for actives_count in max_hits_list]
-    
+
     max_cluster_hits_list = [0 for _ in range(len(task_names))]
+    max_novel_hits_list = [0 for _ in range(len(task_names))]
     for ti in range(len(task_names)):
         # Get the clusters with actives
         active_indices = np.where(y_unlabeled[:,ti] == 1)[0]
-        clusters_with_actives_ti = y_clusters[active_indices]
+        clusters_with_actives_ti = unlabeled_clusters[active_indices]
+        unique_clusters_with_actives_ti = np.unique(clusters_with_actives_ti)
         max_cluster_hits_list[ti] = min(batch_size, 
-                                        np.unique(clusters_with_actives_ti).shape[0])
-    
-    return max_hits_list, max_cluster_hits_list
-    
-    
+                                        unique_clusters_with_actives_ti.shape[0])
+        
+        novel_clusters_with_actives = np.setdiff1d(unique_clusters_with_actives_ti, 
+                                                   training_clusters)
+        max_novel_hits_list[ti] = min(batch_size, 
+                                      novel_clusters_with_actives.shape[0])
+    return max_hits_list, max_cluster_hits_list, max_novel_hits_list
+
 """
     Random sample from the given parameter set. 
     Assumes uniform distribution.
@@ -87,5 +93,115 @@ def get_param_from_dist(nbs_config,
         
         # modify nbs_params dict with sampled choice
         nbs_params[param] = param_sampled_choice
-    
+    nbs_params["class"] = nbs_params["class"][0]
     return nbs_params
+	
+	
+"""
+    Evaluates selected batch by assuming all are active/hits.
+"""
+def evaluate_selected_batch(exploitation_df, exploration_df, 
+							exploitation_array, exploration_array,
+							params_set_results_dir,
+							pipeline_config,
+							iter_num,
+                            batch_size,
+                            total_selection_time,
+                            add_mean_medians=False):
+    w_novelty = pipeline_config['common']['metrics_params']['w_novelty']
+    task_names = pipeline_config['common']['task_names']
+    cost_col_name = pipeline_config['unlabeled_data_params']['cost_col_name']
+    iter_results_dir = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(iter_num)
+    eval_dest_file = iter_results_dir+'/'+pipeline_config['common']['eval_dest_file']
+    pathlib.Path(eval_dest_file).parent.mkdir(parents=True, exist_ok=True)
+
+    cols_names = task_names
+    if add_mean_medians:
+        cols_names = cols_names+['Mean', 'Median']
+    # retrieve max_hits_list, max_cluster_hits_list of the unlabeled data for this iteration
+    max_hits_list, max_cluster_hits_list, max_novel_hits_list = get_unlabeled_maxes(training_loader_params=pipeline_config['training_data_params'], 
+                                                                                    unlabeled_loader_params=pipeline_config['unlabeled_data_params'],
+                                                                                    task_names=task_names,
+                                                                                    batch_size=batch_size)
+    training_clusters = prepare_loader(data_loader_params=pipeline_config['training_data_params'],
+                                       task_names=task_names).get_clusters()
+
+    if exploitation_df is not None:
+        exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
+                               index=False)
+        exploitation_metrics_mat, metrics_names = eval_on_metrics(exploitation_df[task_names].values, np.ones_like(exploitation_df[task_names].values), 
+                                                                  train_clusters, exploitation_array[:,1],
+                                                                  max_hits_list, max_cluster_hits_list, max_novel_hits_list,
+                                                                  add_mean_medians, w_novelty)
+    if exploration_df is not None:
+        exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploration'),
+                              index=False)
+        exploration_metrics_mat, metrics_names = eval_on_metrics(exploration_df[task_names].values, np.ones_like(exploration_df[task_names].values), 
+                                                                 train_clusters, exploration_array[:,1],
+                                                                 max_hits_list, max_cluster_hits_list, max_novel_hits_list,
+                                                                 add_mean_medians, w_novelty)
+    # record rest of metrics		
+    exploitation_batch_size = exploitation_df[task_names].shape[0]
+    try:
+        exploitation_costs = exploitation_df[cost_col_name].values.astype(float)
+    except:
+        exploitation_costs = np.ones(shape=(exploitation_df.shape[0],))
+    exploitation_batch_cost = np.sum(exploitation_costs)
+
+    exploration_batch_size = exploration_df[task_names].shape[0]
+    try:
+        exploration_costs = exploration_df[cost_col_name].values.astype(float)
+    except:
+        exploration_costs = np.ones(shape=(exploration_df.shape[0],))
+    exploration_batch_cost = np.sum(exploration_costs)
+
+    exploitation_metrics_mat = np.hstack([exploitation_metrics_mat, [exploitation_batch_size, exploitation_batch_cost]])
+    exploration_metrics_mat = np.hstack([exploration_metrics_mat, [exploration_batch_size, exploration_batch_cost]])
+    metric_names = metric_names + ['batch_size', 'batch_cost']
+
+    total_metrics_mat = np.zeros_like(exploitation_metrics_mat)
+    for i, metric in enumerate(metric_names):
+        total_res = 0
+        if 'ratio' not in metric:
+            total_metrics_mat[i] = exploitation_metrics_mat[i] + exploration_metrics_mat[i]
+        else:
+            total_metrics_mat[i] = total_metrics_mat[i-2] / total_metrics_mat[i-1]
+            
+    total_batch_size = exploitation_batch_size + exploration_batch_size
+    total_cherry_picking_time = total_batch_size * pipeline_config['common']['cherry_picking_time_per_cpd']
+    screening_time_per_batch = pipeline_config['common']['screening_time_per_batch'] 
+    total_screening_time = total_cherry_picking_time + screening_time_per_batch
+
+    metrics_mat = np.hstack([exploitation_metrics_mat, exploration_metrics_mat, total_metrics_mat, 
+                            [total_cherry_picking_time], [screening_time_per_batch], [total_screening_time]])
+    metrics_names = ['exploitation_'+m for m in metrics_names] + \
+                    ['exploration_'+m for m in metrics_names] + \
+                    ['total_'+m for m in metrics_names] + \
+                    ['total_cherry_picking_time', 'screening_time_per_batch', 'total_screening_time']
+                    
+    # save to destination
+    metrics_df = pd.DataFrame(data=metrics_mat,
+                              columns=[iter_num],
+                              index=metrics_names).T
+    metrics_df.to_csv(eval_dest_file, index=True)
+	
+"""
+    Summarize simulation evaluation results by aggregating.
+"""
+def summarize_simulation(params_set_results_dir,
+						 pipeline_config):
+    summary_dest_file = params_set_results_dir+'/'+pipeline_config['common']['summary_dest_file']
+    pathlib.Path(summary_dest_file).parent.mkdir(parents=True, exist_ok=True)
+
+    metrics_df_list = []
+    iter_dirs = glob.glob(params_set_results_dir+'/*/')
+    for i in range(len(iter_dirs)):
+        iter_d = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(i)
+        eval_dest_file = iter_d+'/'+pipeline_config['common']['eval_dest_file']
+        metrics_df_list.append(pd.read_csv(eval_dest_file))
+
+    summary_df = pd.concat(metrics_df_list)
+    summary_df = pd.concat([summary_df[[m for m in summary_df.columns if 'ratio' not in m]].sum(),
+                            summary_df[[m for m in summary_df.columns if 'ratio' in m]].mean()]).to_frame().T
+    summary_df.index = ['total']
+    summary_df.read_csv(summary_dest_file, index=True)

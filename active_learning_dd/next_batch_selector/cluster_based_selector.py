@@ -468,9 +468,10 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         remaining_total_budget = total_budget
         i=0
         rem_clusters_idx = list(np.arange(len(candidate_clusters)))
+        remaining_cluster_budget = 0
         while i < len(candidate_clusters) and remaining_total_budget > 0:
-            curr_selected_cluster_idx = np.random.choice(rem_clusters_idx, size=1, replace=False)
-            rem_clusters_idx = rem_clusters_idx.remove(curr_selected_cluster_idx)
+            curr_selected_cluster_idx = np.random.choice(rem_clusters_idx, size=1, replace=False)[0]
+            rem_clusters_idx.remove(curr_selected_cluster_idx)
             curr_selected_cluster = candidate_clusters[curr_selected_cluster_idx]
             
             # process current cluster budget

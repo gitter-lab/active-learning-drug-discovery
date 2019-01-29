@@ -36,15 +36,18 @@ def get_next_batch(training_loader_params,
     start_time = time.time()
     training_loader = prepare_loader(data_loader_params=training_loader_params,
                                      task_names=task_names)
-    X_train, y_train = training_loader.get_features_and_labels()
     unlabeled_loader = prepare_loader(data_loader_params=unlabeled_loader_params,
                                       task_names=task_names)
+    # remove already labeled data
+    unlabeled_loader.drop_duplicates_via_smiles(training_loader.get_smiles())
+
+    X_train, y_train = training_loader.get_features_and_labels()
     X_unlabeled = unlabeled_loader.get_features()
     end_time = time.time()
     print('Finished loading data. Took {} seconds.'.format(end_time - start_time))
     print('Training data shape X_train: {}, y_train: {}'.format(X_train.shape, y_train.shape))
     print('Unlabeled data shape X_unlabeled: {}'.format(X_unlabeled.shape))
-    
+
     # load and train model
     start_time = time.time()
     model = prepare_model(model_params=model_params,
@@ -52,7 +55,7 @@ def get_next_batch(training_loader_params,
     model.fit(X_train, y_train)
     end_time = time.time()
     print('Finished training model. Took {} seconds.'.format(end_time - start_time))
-    
+
     # select next batch
     print('Selecting next batch...')
     start_time = time.time()
@@ -65,21 +68,21 @@ def get_next_batch(training_loader_params,
     selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]
     end_time = time.time()
     print('Finished selecting next batch. Took {} seconds.'.format(end_time - start_time))
-    
+
     # get unlabeled dataframe slice corresponding to selected pairs
     unlabeled_df = unlabeled_loader.get_dataframe()
     exploitation_array = unroll_cluster_instances_pairs(selected_exploitation_cluster_instances_pairs)
     exploration_array = unroll_cluster_instances_pairs(selected_exploration_cluster_instances_pairs)
-    
+
     exploitation_df, exploration_df = None, None
     if exploitation_array is not None:
         exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]
     if exploration_array is not None:
         exploration_df = unlabeled_df.iloc[exploration_array[:,0],:]
-    
+
     return exploitation_df, exploration_df, exploitation_array, exploration_array
-    
-    
+
+
 """
     Unrolls cluster instance pairs list into a 2D numpy array with cols: [instance_idx, cluster_id] 
 """

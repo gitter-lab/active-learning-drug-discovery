@@ -17,7 +17,7 @@ import pandas as pd
     Computes tanimoto dissimilarity array between two feature matrices.
     Compares each row of X with each row of Y.
 """
-def tanimoto_dissimilarity(X, Y, X_batch_size=200, Y_batch_size=200):
+def tanimoto_dissimilarity(X, Y, X_batch_size=5, Y_batch_size=5):
     n_features = X.shape[-1]
     if X.ndim == 1:
         X = X.reshape(-1, n_features)
@@ -72,9 +72,6 @@ def get_avg_cluster_dissimilarity(clusters,
                                   selected_cluster_ids, 
                                   candidate_cluster_ids,
                                   feature_dist_func=tanimoto_dissimilarity):
-    clusters_ordered_ids = candidate_cluster_ids
-    clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
-    
     clusters_ordered_ids = candidate_cluster_ids
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     

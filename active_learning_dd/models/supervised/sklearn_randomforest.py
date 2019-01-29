@@ -72,12 +72,13 @@ class SklearnRF(SupervisedModel):
         uncertainty = np.zeros(shape=(X.shape[0],len(self.task_names)))
         for ti, task_name in enumerate(self.task_names):
             consensus_preds = self.model_dict[task_name].predict_proba(X)
+            consensus_preds = np.clip(consensus_preds, a_min=1e-7, a_max=None)
             n_estimators = len(self.model_dict[task_name].estimators_)
             estimator_uncertainty_sum = np.zeros(shape=(X.shape[0],))
             for estimator in self.model_dict[task_name].estimators_:
                 estimator_preds = estimator.predict_proba(X)
                 kb_divs = estimator_preds * np.log(estimator_preds / consensus_preds)
-                kb_divs = np.sum(kb_div, axis=1)
+                kb_divs = np.sum(kb_divs, axis=1)
                 estimator_uncertainty_sum += kb_divs
             estimator_uncertainty_mean = estimator_uncertainty_sum / n_estimators
             uncertainty[:,ti] = estimator_uncertainty_mean
