@@ -71,47 +71,32 @@ def get_avg_cluster_dissimilarity(clusters,
                                   features, 
                                   selected_cluster_ids, 
                                   candidate_cluster_ids,
-                                  feature_dist_func=tanimoto_dissimilarity):
-    clusters_ordered_ids = candidate_cluster_ids
+                                  feature_dist_func=tanimoto_dissimilarity,
+                                  candidate_cluster_batch_size=5):
+    clusters_ordered_ids = candidate_cluster_ids[:]
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     
     selected_cid_instances = np.in1d(clusters, selected_cluster_ids)
-    candidate_cid_instances = np.in1d(clusters, candidate_cluster_ids)
-    
-    candidate_cluster_rep = np.repeat(clusters[candidate_cid_instances], len(clusters[selected_cid_instances]))
-    candidate_cluster_dist = feature_dist_func(features[selected_cid_instances,:], features[candidate_cid_instances,:])
-    
-    dist_df = pd.DataFrame(data=np.hstack([candidate_cluster_dist.reshape(-1,1),
-                                           candidate_cluster_rep.reshape(-1,1)]),
-                           columns=['dist', 'candidate_group'])
-    cluster_dist_means = dist_df.groupby('candidate_group').mean().values.flatten()
-    
-    sorted_idx = np.argsort(candidate_cluster_ids)
-    rev_sorted_idx = np.zeros(len(candidate_cluster_ids), dtype=int)
-    rev_sorted_idx[sorted_idx] = np.arange(len(candidate_cluster_ids)) # adapted from: https://stackoverflow.com/a/10831155
-    clusters_avg_dissimilarity[:] = cluster_dist_means[rev_sorted_idx]
-    
+    cluster_dist_means_list = []
+    total_batches = candidate_cluster_ids.shape[0] // candidate_cluster_batch_size + 1
+    for batch_i in range(total_batches):
+        start_idx = batch_i*candidate_cluster_batch_size
+        end_idx = min((batch_i+1)*candidate_cluster_batch_size, candidate_cluster_ids.shape[0])
+        candidate_batch = candidate_cluster_ids[start_idx:end_idx]
+        candidate_cid_instances = np.in1d(clusters, candidate_batch)
+        
+        candidate_cluster_rep = np.repeat(clusters[candidate_cid_instances], len(clusters[selected_cid_instances]))
+        candidate_cluster_dist = feature_dist_func(features[selected_cid_instances,:], features[candidate_cid_instances,:])
+        
+        dist_df = pd.DataFrame(data=np.hstack([candidate_cluster_dist.reshape(-1,1),
+                                               candidate_cluster_rep.reshape(-1,1)]),
+                               columns=['dist', 'candidate_group'])
+        cluster_dist_means_list.append(dist_df.groupby('candidate_group').mean().loc[candidate_batch].values.flatten())
+        
+    clusters_avg_dissimilarity = np.hstack(cluster_dist_means_list)
     return clusters_ordered_ids, clusters_avg_dissimilarity
 
 """
-    clusters_ordered_ids = candidate_cluster_ids
-    clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
-    
-    selected_cid_instances = np.in1d(clusters, selected_cluster_ids)
-    candidate_cid_instances = np.in1d(clusters, candidate_cluster_ids)
-    
-    candidate_cluster_rep = np.repeat(clusters[candidate_cid_instances], len(selected_cid_instances))
-    candidate_cluster_dist = feature_dist_func(features[selected_cid_instances,:], features[candidate_cid_instances,:])
-    
-    dist_df = pd.DataFrame(data=np.hstack([candidate_cluster_dist.reshape(-1,1),
-                                           candidate_cluster_rep.reshape(-1,1)]),
-                           columns=['dist', 'candidate_group'])
-    cluster_dist_means = dist_df.groupby('candidate_group').mean().values.flatten()
-    
-    sorted_idx = np.argsort(candidate_cluster_ids)
-    rev_sorted_idx = np.zeros(len(candidate_cluster_ids), dtype=int)
-    rev_sorted_idx[sorted_idx] = np.arange(len(candidate_cluster_ids)) # adapted from: https://stackoverflow.com/a/10831155
-    clusters_avg_dissimilarity[:] = cluster_dist_means[rev_sorted_idx]
     ----
     curr_clusters_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     for selected_cid in selected_cluster_ids:
