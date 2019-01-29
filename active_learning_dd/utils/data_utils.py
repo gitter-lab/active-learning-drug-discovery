@@ -72,7 +72,7 @@ def get_avg_cluster_dissimilarity(clusters,
                                   selected_cluster_ids, 
                                   candidate_cluster_ids,
                                   feature_dist_func=tanimoto_dissimilarity,
-                                  candidate_cluster_batch_size=10):
+                                  candidate_cluster_batch_size=20):
     clusters_ordered_ids = candidate_cluster_ids[:]
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     
@@ -80,8 +80,6 @@ def get_avg_cluster_dissimilarity(clusters,
     cluster_dist_means_list = []
     total_batches = candidate_cluster_ids.shape[0] // candidate_cluster_batch_size + 1
     for batch_i in range(total_batches):
-        import time
-        start = time.time()
         start_idx = batch_i*candidate_cluster_batch_size
         end_idx = min((batch_i+1)*candidate_cluster_batch_size, candidate_cluster_ids.shape[0])
         candidate_batch = candidate_cluster_ids[start_idx:end_idx]
@@ -94,8 +92,6 @@ def get_avg_cluster_dissimilarity(clusters,
                                                candidate_cluster_rep.reshape(-1,1)]),
                                columns=['dist', 'candidate_group'])
         cluster_dist_means_list.append(dist_df.groupby('candidate_group').mean().loc[candidate_batch].values.flatten())
-        
-        print('{} of {} took {} seconds.'.format(batch_i, total_batches, time.time() - start))
     clusters_avg_dissimilarity = np.hstack(cluster_dist_means_list)
     return clusters_ordered_ids, clusters_avg_dissimilarity
 

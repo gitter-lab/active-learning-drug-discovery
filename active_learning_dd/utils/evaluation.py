@@ -43,7 +43,7 @@ def eval_on_metrics(y_true, y_preds,
     _, norm_hits_ratio_mat, n_hits_mat, max_n_hits_mat, norm_cluster_hits_ratio_mat, n_cluster_hits_mat, max_n_cluster_hits_mat = novel_n_hits(y_true, y_preds, test_clusters, 
                                                                                                                                                n_tests_list, w_novelty)
                                                                                                                                                
-    novel_cluster_hits_mat, max_novel_cluster_hits_mat, norm_novel_cluster_hits_ratio_mat = novel_cluster_n_hits(y_true, y_pred, [train_clusters, test_clusters], n_tests_list)             
+    novel_cluster_hits_mat, max_novel_cluster_hits_mat, norm_novel_cluster_hits_ratio_mat = novel_cluster_n_hits(y_true, y_preds, [train_clusters, test_clusters], n_tests_list)             
     # modify the maxes and ratios
     max_n_hits_mat = np.array(max_hits_list).reshape(-1,y_true.shape[1])
     max_n_cluster_hits_mat = np.array(max_cluster_hits_list).reshape(-1,y_true.shape[1])
