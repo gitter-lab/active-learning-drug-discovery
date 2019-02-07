@@ -12,6 +12,7 @@ from sklearn.model_selection import ParameterGrid
 import pathlib
 import numpy as np
 import pandas as pd
+import glob
 
 from active_learning_dd.utils.evaluation import eval_on_metrics
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
@@ -110,6 +111,7 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
                             total_selection_time,
                             add_mean_medians=False):
     w_novelty = pipeline_config['common']['metrics_params']['w_novelty']
+    perc_vec = pipeline_config['common']['metrics_params']['perc_vec']
     task_names = pipeline_config['common']['task_names']
     cost_col_name = pipeline_config['unlabeled_data_params']['cost_col_name']
     iter_results_dir = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(iter_num)
@@ -126,45 +128,55 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
                                                                                     batch_size=batch_size)
     train_clusters = prepare_loader(data_loader_params=pipeline_config['training_data_params'],
                                     task_names=task_names).get_clusters()
-
+    
+    exploitation_batch_size, exploitation_batch_cost = 0, 0
     if exploitation_df is not None:
         exploitation_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploitation'),
                                index=False)
         exploitation_metrics_mat, metrics_names = eval_on_metrics(exploitation_df[task_names].values, np.ones_like(exploitation_df[task_names].values), 
                                                                   train_clusters, exploitation_array[:,1],
                                                                   max_hits_list, max_cluster_hits_list, max_novel_hits_list,
-                                                                  add_mean_medians, w_novelty)
+                                                                  add_mean_medians, w_novelty, perc_vec)
+        exploitation_batch_size = exploitation_df[task_names].shape[0]
+        try:
+            exploitation_costs = exploitation_df[cost_col_name].values.astype(float)
+        except:
+            exploitation_costs = np.ones(shape=(exploitation_df.shape[0],))
+        exploitation_batch_cost = np.sum(exploitation_costs)
+    else:
+        exploitation_metrics_mat, metrics_names = eval_on_metrics(None, None, 
+                                                                  train_clusters, None,
+                                                                  max_hits_list, max_cluster_hits_list, max_novel_hits_list,
+                                                                  add_mean_medians, w_novelty, perc_vec)
+    exploration_batch_size, exploration_batch_cost = 0, 0
     if exploration_df is not None:
         exploration_df.to_csv(iter_results_dir+'/'+pipeline_config['common']['batch_csv'].format('exploration'),
                               index=False)
         exploration_metrics_mat, metrics_names = eval_on_metrics(exploration_df[task_names].values, np.ones_like(exploration_df[task_names].values), 
                                                                  train_clusters, exploration_array[:,1],
                                                                  max_hits_list, max_cluster_hits_list, max_novel_hits_list,
-                                                                 add_mean_medians, w_novelty)
-    # record rest of metrics		
-    exploitation_batch_size = exploitation_df[task_names].shape[0]
-    try:
-        exploitation_costs = exploitation_df[cost_col_name].values.astype(float)
-    except:
-        exploitation_costs = np.ones(shape=(exploitation_df.shape[0],))
-    exploitation_batch_cost = np.sum(exploitation_costs)
-
-    exploration_batch_size = exploration_df[task_names].shape[0]
-    try:
-        exploration_costs = exploration_df[cost_col_name].values.astype(float)
-    except:
-        exploration_costs = np.ones(shape=(exploration_df.shape[0],))
-    exploration_batch_cost = np.sum(exploration_costs)
-
-    exploitation_metrics_mat = np.hstack([exploitation_metrics_mat, [exploitation_batch_size, exploitation_batch_cost]])
-    exploration_metrics_mat = np.hstack([exploration_metrics_mat, [exploration_batch_size, exploration_batch_cost]])
-    metric_names = metric_names + ['batch_size', 'batch_cost']
+                                                                 add_mean_medians, w_novelty, perc_vec)
+        exploration_batch_size = exploration_df[task_names].shape[0]
+        try:
+            exploration_costs = exploration_df[cost_col_name].values.astype(float)
+        except:
+            exploration_costs = np.ones(shape=(exploration_df.shape[0],))
+        exploration_batch_cost = np.sum(exploration_costs)
+    else:
+        exploration_metrics_mat, metrics_names = eval_on_metrics(None, None,
+                                                                 train_clusters, None,
+                                                                 max_hits_list, max_cluster_hits_list, max_novel_hits_list,
+                                                                 add_mean_medians, w_novelty, perc_vec)
+    # record rest of metrics
+    exploitation_metrics_mat = np.vstack([exploitation_metrics_mat, [[exploitation_batch_size], [exploitation_batch_cost]]])
+    exploration_metrics_mat = np.vstack([exploration_metrics_mat, [[exploration_batch_size], [exploration_batch_cost]]])
+    metrics_names = metrics_names + ['batch_size', 'batch_cost']
 
     total_metrics_mat = np.zeros_like(exploitation_metrics_mat)
-    for i, metric in enumerate(metric_names):
+    for i, metric in enumerate(metrics_names):
         total_res = 0
         if 'ratio' not in metric:
-            total_metrics_mat[i] = exploitation_metrics_mat[i] + exploration_metrics_mat[i]
+            total_metrics_mat[i] = (exploitation_metrics_mat[i] + exploration_metrics_mat[i])
         else:
             total_metrics_mat[i] = total_metrics_mat[i-2] / total_metrics_mat[i-1]
             
@@ -173,8 +185,8 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
     screening_time_per_batch = pipeline_config['common']['screening_time_per_batch'] 
     total_screening_time = total_cherry_picking_time + screening_time_per_batch
 
-    metrics_mat = np.hstack([exploitation_metrics_mat, exploration_metrics_mat, total_metrics_mat, 
-                            [total_cherry_picking_time], [screening_time_per_batch], [total_screening_time]])
+    metrics_mat = np.vstack([exploitation_metrics_mat, exploration_metrics_mat, total_metrics_mat, 
+                            [[total_cherry_picking_time]], [[screening_time_per_batch]], [[total_screening_time]]])
     metrics_names = ['exploitation_'+m for m in metrics_names] + \
                     ['exploration_'+m for m in metrics_names] + \
                     ['total_'+m for m in metrics_names] + \
@@ -205,7 +217,7 @@ def summarize_simulation(params_set_results_dir,
     summary_df = pd.concat([summary_df[[m for m in summary_df.columns if 'ratio' not in m]].sum(),
                             summary_df[[m for m in summary_df.columns if 'ratio' in m]].mean()]).to_frame().T
     summary_df.index = ['total']
-    summary_df.read_csv(summary_dest_file, index=True)
+    summary_df.to_csv(summary_dest_file, index=False)
     
 class SimulationParameterGrid(ParameterGrid):
     """

@@ -37,7 +37,7 @@
   },
     
   "common": {
-    "params_set_results_dir": "../params_results/{}_{}/",
+    "params_set_results_dir": "../params_results/{}/{}_{}/",
     "params_set_config_csv": "config.csv",
     "batch_size_results_dir": "/batch_size_{}/",
     "iter_results_dir": "/iter_{}/",
@@ -47,11 +47,12 @@
     
     "task_names": "PriA-SSB Activity",
     
-	"cherry_picking_time_per_cpd": 100.0,
-	"screening_time_per_batch": 3600.0,
+    "cherry_picking_time_per_cpd": 100.0,
+    "screening_time_per_batch": 3600.0,
 	
     "metrics_params": {
-      "w_novelty": 0.5
+      "w_novelty": 0.5,
+      "perc_vec": [0.01, 0.02, 0.05, 0.1, 0.2]
     }
   }
 }

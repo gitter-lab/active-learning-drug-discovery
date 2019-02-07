@@ -17,7 +17,7 @@ import pandas as pd
     Computes tanimoto dissimilarity array between two feature matrices.
     Compares each row of X with each row of Y.
 """
-def tanimoto_dissimilarity(X, Y, X_batch_size=500, Y_batch_size=500):
+def tanimoto_dissimilarity(X, Y, X_batch_size=50, Y_batch_size=50):
     n_features = X.shape[-1]
     if X.ndim == 1:
         X = X.reshape(-1, n_features)

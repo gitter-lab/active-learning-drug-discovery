@@ -64,14 +64,15 @@ class SupervisedModel(object):
             uncertainty = self.get_uncertainty_lc(X)
         
         clusters = np.arange(len(X))
-        _, avg_dissim = get_avg_cluster_dissimilarity(clusters, 
-                                                      X, 
-                                                      clusters, 
-                                                      clusters,
-                                                      feature_dist_func,
-                                                      candidate_cluster_batch_size=1000)
-        avg_sim = 1.0 - avg_dissim
-        uncertainty = uncertainty * ((avg_sim)**beta)
+        _, avg_dist = get_avg_cluster_dissimilarity(clusters, 
+                                                    X, 
+                                                    clusters, 
+                                                    clusters,
+                                                    feature_dist_func,
+                                                    candidate_cluster_batch_size=100)
+        avg_dist = 1.0 - avg_dist
+        avg_dist = ((avg_dist)**beta)
+        uncertainty = uncertainty * avg_dist
         return uncertainty
     
     """

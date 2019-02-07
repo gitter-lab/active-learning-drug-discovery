@@ -35,7 +35,7 @@
   
   "nbs_params_probas": {
     "exploitation_use_quantile_for_activity": [0.5, 0.5], 
-    "exploitation_sample_actives_from_clusters": [0.9, 0.1],
+    "exploitation_sample_actives_from_clusters": [0.1, 0.9],
     "exploitation_activity_threshold": [0.1, 0.1, 0.3, 0.5, 0.0],
     "exploitation_use_quantile_for_weight": [0.5, 0.5],
     "exploitation_weight_threshold": [0.1, 0.1, 0.35, 0.35, 0.1],

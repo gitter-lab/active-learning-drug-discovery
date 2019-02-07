@@ -6,7 +6,8 @@
         --pipeline_params_json_file=../param_configs/general_pipeline_config.json \
         --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params_test.json \
         --iter_max=5 \ 
-        --process_num=$process_num
+        --process_num=$process_num \
+        --random_param_sampling=False
 """
 
 from __future__ import absolute_import
@@ -34,25 +35,29 @@ if __name__ ==  '__main__':
     parser.add_argument('--nbs_params_json_file', action="store", dest="nbs_params_json_file", required=True)
     parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=False)
     parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=False)
+    parser.add_argument('--random_param_sampling', type=bool, default=False, action="store", dest="random_param_sampling", required=False)
     
     given_args = parser.parse_args()
     pipeline_params_json_file = given_args.pipeline_params_json_file
     nbs_params_json_file = given_args.nbs_params_json_file
     iter_max = given_args.iter_max
     process_num = given_args.process_num
+    random_param_sampling = given_args.random_param_sampling
     
     # load param json configs
     with open(pipeline_params_json_file) as f:
         pipeline_config = json.load(f)
     with open(nbs_params_json_file) as f:
         nbs_config = json.load(f)
-
-    if process_num % 2 == 0: # even process_num
+    
+    if random_param_sampling: 
+        param_sampling_str = 'random'
         next_batch_selector_params = get_random_params(nbs_config, rnd_seed=process_num)
     else:
+        param_sampling_str = 'distributive'
         next_batch_selector_params = get_param_from_dist(nbs_config, rnd_seed=process_num)
     
-    params_set_results_dir = pipeline_config['common']['params_set_results_dir'].format(next_batch_selector_params['class'], process_num)
+    params_set_results_dir = pipeline_config['common']['params_set_results_dir'].format(param_sampling_str, next_batch_selector_params['class'], process_num)
     params_set_config_csv = params_set_results_dir+'/'+pipeline_config['common']['params_set_config_csv']
     pathlib.Path(params_set_config_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(params_set_config_csv,'w') as f:
@@ -62,8 +67,10 @@ if __name__ ==  '__main__':
     # run this param set for each batch size
     batch_size_list = next_batch_selector_params["batch_size"]
     for batch_size in batch_size_list:
+        print('---------------------------------------------------------------')
+        print('Starting AL pipeline with batch_size: {}'.format(batch_size))
         next_batch_selector_params["batch_size"] = batch_size
-        batch_size_results_dir = params_set_results_dir + pipeline_config['common']['batch_size_results_dir']
+        batch_size_results_dir = params_set_results_dir + pipeline_config['common']['batch_size_results_dir'].format(batch_size)
         # run iterations for this simulation
         for iter_num in range(iter_max):
             iter_start_time = time.time()
