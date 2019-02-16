@@ -62,10 +62,10 @@ def get_unlabeled_maxes(training_loader_params,
 
 """
     Random sample from the given parameter set. 
-    Assumes uniform distribution.
+    Assumes uniform distribution. Samples index in the range [0, total_num_parameter_sets].
 """
-def get_random_params(nbs_config,
-                      rnd_seed=0):
+def get_random_params_int_based(nbs_config,
+                                rnd_seed=0):
     # pop the batch_size, since we want to simulate all batch sizes for this param set
     next_batch_selector_params = nbs_config["next_batch_selector_params"]
     batch_sizes = next_batch_selector_params.pop("batch_size", None)
@@ -80,21 +80,44 @@ def get_random_params(nbs_config,
 """
     Random sample from the given parameter set using the 
     distribution given in the config file.
+    If use_uniform=True, then samples each parameter uniformly.
 """
 def get_param_from_dist(nbs_config,
-                        rnd_seed=0):
+                        rnd_seed=0,
+                        use_uniform=False,
+                        exploration_strategy='weighted'):
     nbs_params = nbs_config["next_batch_selector_params"]
     nbs_params_probas = nbs_config["nbs_params_probas"]
     # sample random param 
     np.random.seed(rnd_seed)
     sorted_params = sorted(nbs_params_probas.keys())
-    for param in sorted_params:
-        param_choices = nbs_params[param]
+    
+    if exploration_strategy not in nbs_params["exploration_strategy"]:
+        raise ValueError('Given exploration strategy not supported in config file.')
+    
+    nbs_params["exploration_strategy"] = exploration_strategy
+    if exploration_strategy == 'random' or exploration_strategy == 'dissimilar':
+        for removable_param, default_value in [('exploration_use_quantile_for_weight', False), 
+                                               ('exploration_weight_threshold', 0.0), 
+                                               ('exploration_beta', 0.0), 
+                                               ('exploration_dissimilarity_lambda', 0.0)]:
+            nbs_params[removable_param] = default_value
+            sorted_params.remove(removable_param)
+                
+    while len(sorted_params) > 0:
+        param = sorted_params.pop()
+        param_choices = np.array(nbs_params[param])
         param_probas = nbs_params_probas[param]
+        if param_choices.ndim > 1:
+            param_choices = param_choices.flatten()
+            
+        if use_uniform:
+            param_probas = [1.0/len(param_choices) for _ in range(len(param_choices))] # discrete uniform sampling
         param_sampled_choice = np.random.choice(param_choices, size=1, p=param_probas)[0]
         
         # modify nbs_params dict with sampled choice
         nbs_params[param] = param_sampled_choice
+        
     nbs_params["class"] = nbs_params["class"][0]
     return nbs_params
 	

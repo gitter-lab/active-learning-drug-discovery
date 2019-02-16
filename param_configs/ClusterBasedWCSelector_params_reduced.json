@@ -1,0 +1,58 @@
+{
+  "next_batch_selector_params": {
+    "class": ["ClusterBasedWCSelector"],
+  
+    "batch_size": [96, 384, 1536],
+    
+    "exploitation_use_quantile_for_activity": [false, true],
+    "exploitation_sample_actives_from_clusters": [false, true],
+    "exploitation_activity_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_use_quantile_for_weight": [false, true],
+    "exploitation_weight_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_alpha": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploitation_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "use_intra_cluster_threshold_for_exploitation": [false, true],
+    "use_proportional_cluster_budget_for_exploitation": [false, true],
+    
+    "exploration_strategy": ["weighted", "random", "dissimilar"],
+    "exploration_use_quantile_for_weight": [false, true],
+    "exploration_weight_threshold": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploration_beta": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "exploration_dissimilarity_lambda": [0.0, 0.25, 0.5, 0.75, 1.0],
+    "use_intra_cluster_threshold_for_exploration": [false, true],
+    "use_proportional_cluster_budget_for_exploration": [false, true],
+    
+    "select_dissimilar_instances_within_cluster": [false, true],
+    "intra_cluster_dissimilarity_threshold": [0.0, 0.05, 0.1, 0.15, 0.2],
+    "feature_dist_func": ["tanimoto_dissimilarity"],
+    "use_consensus_distance": [true],
+    
+    "uncertainty_method": [["least_confidence"]]
+  },
+  
+  "nbs_params_probas": {
+    "exploitation_use_quantile_for_activity": [0.5, 0.5], 
+    "exploitation_sample_actives_from_clusters": [0.1, 0.9],
+    "exploitation_activity_threshold": [0.1, 0.1, 0.3, 0.5, 0.0],
+    "exploitation_use_quantile_for_weight": [0.5, 0.5],
+    "exploitation_weight_threshold": [0.1, 0.1, 0.35, 0.35, 0.1],
+    "exploitation_alpha": [0.2, 0.2, 0.2, 0.2, 0.2],
+    "exploitation_dissimilarity_lambda": [0.2, 0.2, 0.2, 0.2, 0.2],
+    "use_intra_cluster_threshold_for_exploitation": [0.2, 0.8],
+    "use_proportional_cluster_budget_for_exploitation": [0.8, 0.2],
+    
+    "exploration_use_quantile_for_weight": [0.5, 0.5],
+    "exploration_weight_threshold": [0.1, 0.1, 0.35, 0.35, 0.1],
+    "exploration_beta": [0.2, 0.2, 0.2, 0.2, 0.2],
+    "exploration_dissimilarity_lambda": [0.2, 0.2, 0.2, 0.2, 0.2],
+    "use_intra_cluster_threshold_for_exploration": [0.8, 0.2],
+    "use_proportional_cluster_budget_for_exploration": [0.2, 0.8],
+    
+    "select_dissimilar_instances_within_cluster": [0.25, 0.75],
+    "intra_cluster_dissimilarity_threshold": [0.0, 0.3, 0.25, 0.25, 0.2],
+    "feature_dist_func": [1.0],
+    "use_consensus_distance": [1.0],
+    
+    "uncertainty_method": [1.0]
+  }
+}

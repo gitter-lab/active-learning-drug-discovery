@@ -110,3 +110,5 @@ params_results/ClusterBasedWCSelector_0/config.csv
 params_results/ClusterBasedWCSelector_0/config.csv
 *.csv
 *.zip
+analysis_notebooks/IS-Cycles.ipynb
+analysis_notebooks/NN-Semisupervised.ipynb

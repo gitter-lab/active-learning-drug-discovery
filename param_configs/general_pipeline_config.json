@@ -37,7 +37,7 @@
   },
     
   "common": {
-    "params_set_results_dir": "../params_results/{}/{}_{}/",
+    "params_set_results_dir": "../params_results/{}/{}/{}_{}/",
     "params_set_config_csv": "config.csv",
     "batch_size_results_dir": "/batch_size_{}/",
     "iter_results_dir": "/iter_{}/",

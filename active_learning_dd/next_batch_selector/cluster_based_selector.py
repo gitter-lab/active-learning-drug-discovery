@@ -52,7 +52,7 @@ class ClusterBasedSelector(NBSBase):
             consensus_features = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids), 
                                                  features_train_unlabeled.shape[1]))
             consensus_clusters = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids),))
-            for i, cid in enumrate(np.hstack([selected_cluster_ids, candidate_cluster_ids])):
+            for i, cid in enumerate(np.hstack([selected_cluster_ids, candidate_cluster_ids])):
                 cid_instances = np.where(clusters_train_unlabeled == cid)[0]
                 cluster_features = features_train_unlabeled[cid_instances,:]
                 consensus_features[i,:] = ((np.sum(cluster_features, axis=0) / cluster_features.shape[0]) >= 0.5).astype(float)
@@ -382,7 +382,9 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                  selectDissimilarInstancesWithinCluster=True):
         print('Selecting {} clusters'.format(weight_column))
         selected_clusters_instances_pairs = []
-        curr_cluster_budget =  np.nan_to_num(np.ceil(total_budget / len(candidate_clusters)))
+        curr_cluster_budget = 0
+        if len(candidate_clusters) != 0:
+            curr_cluster_budget = np.nan_to_num(np.ceil(total_budget / len(candidate_clusters)))
         if useProportionalClusterBudget:
             cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
             total_unlabeled_counts = np.sum(cluster_unlabeled_counts)
@@ -480,7 +482,9 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                useProportionalClusterBudget=False,
                                                selectDissimilarInstancesWithinCluster=True):
         selected_clusters_instances_pairs = []
-        curr_cluster_budget =  np.ceil(total_budget / len(candidate_clusters))
+        curr_cluster_budget = 0
+        if len(candidate_clusters) != 0:
+            curr_cluster_budget = np.ceil(total_budget / len(candidate_clusters))
         if useProportionalClusterBudget:
             cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
             total_unlabeled_counts = np.sum(cluster_unlabeled_counts)
