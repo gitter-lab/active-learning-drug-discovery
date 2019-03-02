@@ -112,3 +112,6 @@ params_results/ClusterBasedWCSelector_0/config.csv
 *.zip
 analysis_notebooks/IS-Cycles.ipynb
 analysis_notebooks/NN-Semisupervised.ipynb
+analysis_notebooks/w.npy
+*.dat
+active_learning_dd/utils/tmp/*
