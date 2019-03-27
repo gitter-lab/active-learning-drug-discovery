@@ -31,7 +31,8 @@ def get_next_batch(training_loader_params,
                    unlabeled_loader_params,
                    model_params,
                    task_names,
-                   next_batch_selector_params):
+                   next_batch_selector_params,
+                   dissimilarity_memmap_filename):
     # load training and unlabeled data
     start_time = time.time()
     training_loader = prepare_loader(data_loader_params=training_loader_params,
@@ -62,7 +63,8 @@ def get_next_batch(training_loader_params,
     next_batch_selector = load_next_batch_selector(training_loader=training_loader,
                                                    unlabeled_loader=unlabeled_loader,
                                                    trained_model=model,
-                                                   next_batch_selector_params=next_batch_selector_params)
+                                                   next_batch_selector_params=next_batch_selector_params,
+                                                   dissimilarity_memmap_filename=dissimilarity_memmap_filename)
     selected_clusters_instances_pairs = next_batch_selector.select_next_batch()
     selected_exploitation_cluster_instances_pairs = selected_clusters_instances_pairs[0]
     selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]

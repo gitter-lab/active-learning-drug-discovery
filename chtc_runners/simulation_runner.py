@@ -4,11 +4,13 @@
     Usage:
         python simulation_runner.py \
         --pipeline_params_json_file=../param_configs/general_pipeline_config.json \
-        --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params_test.json \
+        --nbs_params_json_file=../param_configs/ClusterBasedWCSelector_params_reduced.json \
         --exploration_strategy=weighted \
         --iter_max=5 \ 
         --process_num=$process_num \
-        --random_param_sampling=False
+        --batch_size_index=0 \
+        --no-random_param_sampling \
+        --no-precompute_dissimilarity_matrix
 """
 
 from __future__ import absolute_import
@@ -26,6 +28,7 @@ import time
 from active_learning_dd.active_learning_dd import get_next_batch
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
 from active_learning_dd.utils.data_utils import get_duplicate_smiles_in1d
+from active_learning_dd.utils.generate_dissimilarity_matrix import compute_dissimilarity_matrix
 from simulation_utils import *
     
     
@@ -40,6 +43,8 @@ if __name__ ==  '__main__':
     parser.add_argument('--batch_size_index', type=int, default=0, action="store", dest="batch_size_index", required=False)
     parser.add_argument('--random_param_sampling', dest='random_param_sampling', action='store_true')
     parser.add_argument('--no-random_param_sampling', dest='random_param_sampling', action='store_false')
+    parser.add_argument('--precompute_dissimilarity_matrix', dest='precompute_dissimilarity_matrix', action='store_true')
+    parser.add_argument('--no-precompute_dissimilarity_matrix', dest='precompute_dissimilarity_matrix', action='store_false')
     parser.set_defaults(random_param_sampling=True)
 
     given_args = parser.parse_args()
@@ -50,6 +55,7 @@ if __name__ ==  '__main__':
     process_num = given_args.process_num
     batch_size_index = given_args.batch_size_index
     random_param_sampling = given_args.random_param_sampling
+    precompute_dissimilarity_matrix = given_args.precompute_dissimilarity_matrix
     
     # load param json configs
     with open(pipeline_params_json_file) as f:
@@ -80,6 +86,21 @@ if __name__ ==  '__main__':
     print('Starting AL pipeline with batch_size: {}'.format(batch_size))
     next_batch_selector_params["batch_size"] = batch_size
     batch_size_results_dir = params_set_results_dir + pipeline_config['common']['batch_size_results_dir'].format(batch_size)
+    
+    try: 
+        pipeline_config['common']['dissimilarity_memmap_filename']
+    except:
+        pipeline_config['common']['dissimilarity_memmap_filename'] = None
+    
+    if precompute_dissimilarity_matrix:
+        if pipeline_config['common']['dissimilarity_memmap_filename'] is None:
+            pipeline_config['unlabeled_data_params']['data_path_format'] = '../datasets/dissimilarity_matrix.dat'
+            compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
+                                         output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
+        else:
+            compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
+                                         output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
+    
     # run iterations for this simulation
     for iter_num in range(iter_max):
         iter_start_time = time.time()
@@ -90,7 +111,8 @@ if __name__ ==  '__main__':
                                                                                                 unlabeled_loader_params=pipeline_config['unlabeled_data_params'],
                                                                                                 model_params=pipeline_config['model'],
                                                                                                 task_names=pipeline_config['common']['task_names'],
-                                                                                                next_batch_selector_params=next_batch_selector_params)
+                                                                                                next_batch_selector_params=next_batch_selector_params,
+                                                                                                dissimilarity_memmap_filename=pipeline_config['common']['dissimilarity_memmap_filename'])
         selection_end_time = time.time()
         total_selection_time = selection_end_time - selection_start_time
         #### Evaluation ####

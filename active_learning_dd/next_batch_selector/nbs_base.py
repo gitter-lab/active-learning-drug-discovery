@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..utils.data_utils import get_duplicate_smiles_in1d, get_dissimilarity_matrix, feature_dist_func_dict
+from ..utils.data_utils import get_duplicate_smiles_in1d, get_dissimilarity_matrix, get_dissimilarity_matrix_from_file, feature_dist_func_dict
 
 class NBSBase(object):
     """Abstract base Next Batch Selector class.
@@ -22,13 +22,15 @@ class NBSBase(object):
                  trained_model,
                  batch_size=384,
                  intra_cluster_dissimilarity_threshold=0.0,
-                 feature_dist_func="tanimoto_dissimilarity"):
+                 feature_dist_func="tanimoto_dissimilarity",
+                 dissimilarity_memmap_filename=None):
         self.training_loader = training_loader
         self.unlabeled_loader = unlabeled_loader
         self.trained_model = trained_model
         self.batch_size = batch_size
         self.intra_cluster_dissimilarity_threshold = intra_cluster_dissimilarity_threshold
         self.feature_dist_func = feature_dist_func_dict()[feature_dist_func]
+        self.dissimilarity_memmap_filename = dissimilarity_memmap_filename
         
         # remove already labeled data
         self.unlabeled_loader.drop_duplicates_via_smiles(self.training_loader.get_smiles())
@@ -49,11 +51,18 @@ class NBSBase(object):
                                      useIntraClusterThreshold=True):
         selected_instances = []
         remaining_budget = budget
-        features_unlabeled = self.unlabeled_loader.get_features()
-        features_instances = features_unlabeled[original_instance_idx,:]
         
-        intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances,
-                                                               self.feature_dist_func)
+        if self.dissimilarity_memmap_filename is None:
+            features_instances = self.unlabeled_loader.get_features()[original_instance_idx,:]
+            intra_cluster_dissimilarity = get_dissimilarity_matrix(features_instances,
+                                                                   self.feature_dist_func)
+        else:
+            # get index ids for the full dataset
+            n_instances = len(np.hstack([self.training_loader.get_clusters(), self.unlabeled_loader.get_clusters()]))
+            dm_instance_idx = self.unlabeled_loader.get_idx_ids()[original_instance_idx]
+            intra_cluster_dissimilarity = get_dissimilarity_matrix_from_file(dm_instance_idx, 
+                                                                             self.dissimilarity_memmap_filename,
+                                                                             n_instances)
         
         if remaining_budget > 0:
             # select instance with highest avg dissimilarity first

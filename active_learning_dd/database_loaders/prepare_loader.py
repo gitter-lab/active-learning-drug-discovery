@@ -26,5 +26,6 @@ def prepare_CSVLoader(data_loader_params,
                                    feature_name=data_loader_params["feature_name"],
                                    cluster_col_name=data_loader_params["cluster_col_name"],
                                    molecule_id_col_name=data_loader_params["molecule_id_col_name"],
-                                   cost_col_name=data_loader_params["cost_col_name"])
+                                   cost_col_name=data_loader_params["cost_col_name"],
+                                   idx_id_col_name=data_loader_params["idx_id_col_name"])
     return training_csvloader

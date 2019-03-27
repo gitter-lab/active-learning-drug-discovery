@@ -29,7 +29,8 @@ class CSVLoader(object):
                  feature_name='Morgan FP_2_1024',
                  cluster_col_name='Murcko Scaffold ID',
                  molecule_id_col_name='Molecule',
-                 cost_col_name='Cost'):
+                 cost_col_name='Cost',
+                 idx_id_col_name='Index ID'):
         self.csv_file_or_dir = csv_file_or_dir
         self.task_names = task_names
         self.smile_col_name = smile_col_name
@@ -37,6 +38,9 @@ class CSVLoader(object):
         self.cluster_col_name = cluster_col_name
         self.molecule_id_col_name = molecule_id_col_name
         self.cost_col_name = cost_col_name
+        self.idx_id_col_name = idx_id_col_name
+        
+        self.num_files = len(glob.glob(self.csv_file_or_dir.format('*')))
         
         if not isinstance(self.task_names, list):
             self.task_names = [self.task_names]
@@ -57,17 +61,21 @@ class CSVLoader(object):
     # remove already labeled molecules by checking other and unlabeled pool overlap
     # note duplicates determined via rdkit smiles
     def drop_duplicates_via_smiles(self, smiles_others):
-        smiles_unlabeled = self.get_smiles()
-        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_unlabeled)
+        csv_files_list = [self.csv_file_or_dir.format(i) for i in range(self.num_files)]
+        df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
+        data_df = pd.concat(df_list, sort=False)
+        data_df = data_df.reset_index(drop=True)
+        smiles_this = data_df[self.smile_col_name].values
+        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_this)
         self.idx_to_drop = idx_to_drop
 		
     def _load_dataframe(self):
-        csv_files_list = glob.glob(self.csv_file_or_dir.format('*'))
+        csv_files_list = [self.csv_file_or_dir.format(i) for i in range(self.num_files)]
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list, sort=False)
         data_df = data_df.reset_index(drop=True)
         if self.idx_to_drop is not None:
-            data_df = data_df.drop(data_df.index[self.idx_to_drop])
+            data_df = data_df.drop(data_df.index.values[self.idx_to_drop])
         return data_df
     
     def get_size(self):
@@ -114,3 +122,12 @@ class CSVLoader(object):
         except:
             costs = np.ones(shape=(data_df.shape[0],))
         return costs
+        
+    def get_idx_ids(self):
+        data_df = self.get_dataframe()
+        # if there is no index id column, then return range
+        try:
+            idx_ids = data_df[self.idx_id_col_name].values.astype('int64')
+        except:
+            idx_ids = np.arange(data_df.shape[0])
+        return idx_ids

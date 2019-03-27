@@ -20,9 +20,10 @@
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
-    "cluster_col_name": "Cluster_0.3",
-    "molecule_id_col_name": "Molecue ID",
-    "cost_col_name": "Cost"
+    "cluster_col_name": "Cluster_0.4",
+    "molecule_id_col_name": "Molecule",
+    "cost_col_name": "Cost",
+    "idx_id_col_name": "Index ID"
   },
     
   "unlabeled_data_params": {
@@ -31,9 +32,10 @@
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
-    "cluster_col_name": "Murcko Scaffold ID",
+    "cluster_col_name": "Cluster_0.4",
     "molecule_id_col_name": "Molecule",
-    "cost_col_name": "Cost"
+    "cost_col_name": "Cost",
+    "idx_id_col_name": "Index ID"
   },
     
   "common": {
@@ -44,6 +46,8 @@
     "eval_dest_file": "/eval.csv",
     "batch_csv": "/{}.csv",
 	"summary_dest_file": "summary.csv",
+    
+    "dissimilarity_memmap_filename" : "../datasets/dissimilarity_matrix_94857_94857.dat",
     
     "task_names": "PriA-SSB Activity",
     

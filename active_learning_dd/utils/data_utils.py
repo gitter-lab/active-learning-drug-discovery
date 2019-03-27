@@ -119,6 +119,50 @@ def get_avg_cluster_dissimilarity(clusters,
     
     clusters_avg_dissimilarity /= len(selected_cluster_ids)
 """    
+
+"""
+    Computes avg cluster dissimilarity/distance of candidate clusters towards selected clusters.
+    Uses a disk-stored np.memmap matrix storing the instance dissimilarities.
+"""
+def get_avg_cluster_dissimilarity_from_file(clusters, 
+                                            memmap_filename, 
+                                            n_instances,
+                                            selected_cluster_ids, 
+                                            candidate_cluster_ids,
+                                            candidate_cluster_batch_size=2056,
+                                            batched_clusters_method=True):
+    dissimilarity_matrix = np.memmap(memmap_filename, shape=(n_instances, n_instances), 
+                                     dtype='float16', mode='r')    
+    clusters_ordered_ids = candidate_cluster_ids[:]
+    clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
+    cluster_dist_means_list = []
+    selected_cid_instances = np.in1d(clusters, selected_cluster_ids)
+    
+    if batched_clusters_method:
+        total_batches = candidate_cluster_ids.shape[0] // candidate_cluster_batch_size + 1
+        for batch_i in range(total_batches):
+            start_idx = batch_i*candidate_cluster_batch_size
+            end_idx = min((batch_i+1)*candidate_cluster_batch_size, candidate_cluster_ids.shape[0])
+            candidate_batch = candidate_cluster_ids[start_idx:end_idx]
+            candidate_cid_instances = np.in1d(clusters, candidate_batch)
+            
+            candidate_cluster_rep = np.repeat(clusters[candidate_cid_instances], len(clusters[selected_cid_instances]))
+            dm_slice = dissimilarity_matrix[candidate_cid_instances, :][:,selected_cid_instances]
+            dm_slice = dm_slice.flatten().reshape(-1,1)
+            
+            dist_df = pd.DataFrame(data=np.hstack([dm_slice,
+                                                   candidate_cluster_rep.reshape(-1,1)]),
+                                   columns=['dist', 'candidate_group'])
+            cluster_dist_means_list.append(dist_df.groupby('candidate_group').mean().loc[candidate_batch].values.flatten())
+    else:
+        for ccid in clusters_ordered_ids:
+            ccid_instances_idx = np.where(clusters == ccid)[0]
+            dm_slice = dissimilarity_matrix[ccid_instances_idx, :][:,selected_cid_instances]
+            cluster_dist_means_list.append(np.mean(dm_slice))
+            
+    clusters_avg_dissimilarity = np.hstack(cluster_dist_means_list)
+    del dissimilarity_matrix
+    return clusters_ordered_ids, clusters_avg_dissimilarity
     
 """
     Computes dissimilarity matrix for a given row of features.
@@ -131,3 +175,15 @@ def get_dissimilarity_matrix(features,
         for j in range(row_count):
             dissimilarity_matrix[i,j] = feature_dist_func(features[i:i+1,:], features[j:j+1,:])
     return dissimilarity_matrix
+    
+"""
+    Returns dissimilarity matrix slice from disk-stored np.memmap matrix. .
+"""
+def get_dissimilarity_matrix_from_file(instances_idx, 
+                                       memmap_filename,
+                                       n_instances):
+    dissimilarity_matrix = np.memmap(memmap_filename, shape=(n_instances, n_instances), 
+                                     dtype='float16', mode='r')
+    dm_slice = dissimilarity_matrix[instances_idx, :][:,instances_idx]
+    del dissimilarity_matrix
+    return dm_slice

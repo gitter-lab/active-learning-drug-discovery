@@ -11,13 +11,15 @@ from .cluster_based_selector import *
  
 def load_next_batch_selector(training_loader,
                              unlabeled_loader,
-                             trained_model,
-                             next_batch_selector_params):
+                             trained_model, 
+                             next_batch_selector_params,
+                             dissimilarity_memmap_filename):
     nbs_class = next_batch_selector_params["class"]
     return nbs_func_dict()[nbs_class](training_loader,
                                       unlabeled_loader,
                                       trained_model,
-                                      next_batch_selector_params)
+                                      next_batch_selector_params,
+                                      dissimilarity_memmap_filename)
     
 def nbs_func_dict():
     return {"ClusterBasedWCSelector": prepare_ClusterBasedWCSelector,
@@ -27,13 +29,15 @@ def nbs_func_dict():
 def prepare_ClusterBasedWCSelector(training_loader,
                                    unlabeled_loader,
                                    trained_model,
-                                   next_batch_selector_params):
+                                   next_batch_selector_params,
+                                   dissimilarity_memmap_filename):        
     CBWC_selector = ClusterBasedWCSelector(training_loader=training_loader,
                                            unlabeled_loader=unlabeled_loader,
                                            trained_model=trained_model,
                                            batch_size=next_batch_selector_params["batch_size"],
                                            intra_cluster_dissimilarity_threshold=next_batch_selector_params["intra_cluster_dissimilarity_threshold"],
                                            feature_dist_func=next_batch_selector_params["feature_dist_func"],
+                                           dissimilarity_memmap_filename=dissimilarity_memmap_filename,
                                            use_consensus_distance=next_batch_selector_params["use_consensus_distance"],
                                            uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                            select_dissimilar_instances_within_cluster=next_batch_selector_params["select_dissimilar_instances_within_cluster"],
@@ -59,12 +63,14 @@ def prepare_ClusterBasedWCSelector(training_loader,
 def prepare_InstanceBasedWCSelector(training_loader,
                                     unlabeled_loader,
                                     trained_model,
-                                    next_batch_selector_params):
+                                    next_batch_selector_params,
+                                    dissimilarity_memmap_filename):
     IBWC_selector = InstanceBasedWCSelector(training_loader=training_loader,
                                             unlabeled_loader=unlabeled_loader,
                                             trained_model=trained_model,
                                             batch_size=next_batch_selector_params["batch_size"],
                                             feature_dist_func=next_batch_selector_params["feature_dist_func"],
+                                            dissimilarity_memmap_filename=dissimilarity_memmap_filename,
                                             uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                             exploitation_use_quantile_for_activity=next_batch_selector_params["exploitation_use_quantile_for_activity"],
                                             exploitation_sample_actives_from_clusters=next_batch_selector_params["exploitation_sample_actives_from_clusters"],

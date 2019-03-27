@@ -7,9 +7,10 @@ from __future__ import division
 from __future__ import print_function
 
 from .nbs_base import NBSBase
-from ..utils.data_utils import get_avg_cluster_dissimilarity
+from ..utils.data_utils import get_avg_cluster_dissimilarity, get_avg_cluster_dissimilarity_from_file
 import pandas as pd
 import numpy as np
+import time
 
 class ClusterBasedSelector(NBSBase):
     """
@@ -22,16 +23,18 @@ class ClusterBasedSelector(NBSBase):
                  batch_size=384,
                  intra_cluster_dissimilarity_threshold=0.0,
                  feature_dist_func="tanimoto_dissimilarity",
+                 dissimilarity_memmap_filename=None,
                  use_consensus_distance=False):
         super(ClusterBasedSelector, self).__init__(training_loader,
                                                    unlabeled_loader,
                                                    trained_model,
                                                    batch_size,
                                                    intra_cluster_dissimilarity_threshold,
-                                                   feature_dist_func=feature_dist_func)
+                                                   feature_dist_func=feature_dist_func,
+                                                   dissimilarity_memmap_filename=dissimilarity_memmap_filename)
         # get clusters now since they are used in many calculations
-        self.clusters_train = training_loader.get_clusters()
-        self.clusters_unlabeled = unlabeled_loader.get_clusters()
+        self.clusters_train = self.training_loader.get_clusters()
+        self.clusters_unlabeled = self.unlabeled_loader.get_clusters()
         
         # keep track of clusters selected already
         self.selected_exploitation_clusters = []
@@ -44,29 +47,40 @@ class ClusterBasedSelector(NBSBase):
                                               self.unlabeled_loader.get_features()])
         clusters_train_unlabeled = np.hstack([self.clusters_train, self.clusters_unlabeled])
         
-        cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids]))
-        features_train_unlabeled = features_train_unlabeled[cid_instances]
-        clusters_train_unlabeled = clusters_train_unlabeled[cid_instances]
-            
-        if self.use_consensus_distance:
-            consensus_features = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids), 
-                                                 features_train_unlabeled.shape[1]))
-            consensus_clusters = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids),))
-            for i, cid in enumerate(np.hstack([selected_cluster_ids, candidate_cluster_ids])):
-                cid_instances = np.where(clusters_train_unlabeled == cid)[0]
-                cluster_features = features_train_unlabeled[cid_instances,:]
-                consensus_features[i,:] = ((np.sum(cluster_features, axis=0) / cluster_features.shape[0]) >= 0.5).astype(float)
-                consensus_clusters[i] = cid
+        if self.dissimilarity_memmap_filename is None:
+            cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids]))
+            features_train_unlabeled = features_train_unlabeled[cid_instances]
+            clusters_train_unlabeled = clusters_train_unlabeled[cid_instances]
                 
-            features_train_unlabeled = consensus_features
-            clusters_train_unlabeled = consensus_clusters
-        
-        clusters_ordered_ids, avg_cluster_dissimilarity = get_avg_cluster_dissimilarity(clusters_train_unlabeled, 
-                                                                                        features_train_unlabeled, 
-                                                                                        selected_cluster_ids, 
-                                                                                        candidate_cluster_ids,
-                                                                                        feature_dist_func=self.feature_dist_func)
-        
+            if self.use_consensus_distance:
+                consensus_features = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids), 
+                                                     features_train_unlabeled.shape[1]))
+                consensus_clusters = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids),))
+                for i, cid in enumerate(np.hstack([selected_cluster_ids, candidate_cluster_ids])):
+                    cid_instances = np.where(clusters_train_unlabeled == cid)[0]
+                    cluster_features = features_train_unlabeled[cid_instances,:]
+                    consensus_features[i,:] = ((np.sum(cluster_features, axis=0) / cluster_features.shape[0]) >= 0.5).astype(float)
+                    consensus_clusters[i] = cid
+                    
+                features_train_unlabeled = consensus_features
+                clusters_train_unlabeled = consensus_clusters
+            
+            clusters_ordered_ids, avg_cluster_dissimilarity = get_avg_cluster_dissimilarity(clusters_train_unlabeled, 
+                                                                                            features_train_unlabeled, 
+                                                                                            selected_cluster_ids, 
+                                                                                            candidate_cluster_ids,
+                                                                                            feature_dist_func=self.feature_dist_func)
+        else:
+            idx_ids_train_unlabeled = np.hstack([self.training_loader.get_idx_ids(), 
+                                                 self.unlabeled_loader.get_idx_ids()])
+            sorted_idx_ids = np.argsort(idx_ids_train_unlabeled)
+            clusters_train_unlabeled = clusters_train_unlabeled[sorted_idx_ids]
+            clusters_ordered_ids, avg_cluster_dissimilarity = get_avg_cluster_dissimilarity_from_file(clusters_train_unlabeled, 
+                                                                                                      self.dissimilarity_memmap_filename, 
+                                                                                                      len(clusters_train_unlabeled),
+                                                                                                      selected_cluster_ids, 
+                                                                                                      candidate_cluster_ids)
+                                                                                        
         return clusters_ordered_ids, avg_cluster_dissimilarity
     
     def _get_candidate_exploitation_clusters(self):
@@ -127,23 +141,33 @@ class ClusterBasedSelector(NBSBase):
         
     def select_next_batch(self):
         # get qualifying candidate exploitation and exploration clusters
+        start_time=time.time()
         candidate_exploitation_clusters = self._get_candidate_exploitation_clusters()
-        candidate_exploration_clusters = self._get_candidate_exploration_clusters()        
+        print("Done _get_candidate_exploitation_clusters. Took {} seconds.".format(time.time()-start_time))
+        start_time=time.time()
+        candidate_exploration_clusters = self._get_candidate_exploration_clusters()
+        print("Done _get_candidate_exploration_clusters. Took {} seconds.".format(time.time()-start_time))    
 
         # get exploration and exploitation count estimates
+        start_time=time.time()
         candidate_exploitation_instances_total = self._get_candidate_exploitation_instances_total(candidate_exploitation_clusters)
+        print("Done _get_candidate_exploitation_instances_total. Took {} seconds.".format(time.time()-start_time))
+        start_time=time.time()
         candidate_exploration_instances_total = self._get_candidate_exploration_instances_total(candidate_exploration_clusters)
+        print("Done _get_candidate_exploration_instances_total. Took {} seconds.".format(time.time()-start_time))    
 
         # compute budget assigned to exploitation vs exploration
         exploitation_budget = self._get_ee_budget(candidate_exploitation_instances_total, 
                                                   candidate_exploration_instances_total)
 
         # start selecting exploitation instances from exploitation clusters
+        start_time=time.time()
         selected_exploitation_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploitation_clusters, 
                                                                                              exploitation_budget, 
                                                                                              useExploitationStrategy=True)
-
+        print("Done _select_instances_from_clusters-candidate_exploitation_clusters. Took {} seconds.".format(time.time()-start_time))
         # start selecting exploration instances from exploration clusters
+        start_time=time.time()
         selected_exploitation_clusters = []
         selected_exploitation_instances_count = 0
         if len(selected_exploitation_cluster_instances_pairs) > 0:
@@ -153,10 +177,12 @@ class ClusterBasedSelector(NBSBase):
         exploration_budget = self.batch_size - selected_exploitation_instances_count
         update_exploration_clusters = np.setdiff1d(candidate_exploration_clusters, selected_exploitation_clusters)
         candidate_exploration_clusters = update_exploration_clusters
+        
         selected_exploration_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
                                                                                             exploration_budget, 
                                                                                             useExploitationStrategy=False)
-                                                                                            
+        print("Done _select_instances_from_clusters-candidate_exploration_clusters. Took {} seconds.".format(time.time()-start_time))
+        
         return (selected_exploitation_cluster_instances_pairs, 
                 selected_exploration_cluster_instances_pairs)
                 
@@ -174,6 +200,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                  batch_size=384,
                  intra_cluster_dissimilarity_threshold=0.0,
                  feature_dist_func="tanimoto_dissimilarity",
+                 dissimilarity_memmap_filename=None,
                  use_consensus_distance=False,
                  uncertainty_method="least_confidence",
                  select_dissimilar_instances_within_cluster=True,
@@ -199,6 +226,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                      batch_size,
                                                      intra_cluster_dissimilarity_threshold,
                                                      feature_dist_func=feature_dist_func,
+                                                     dissimilarity_memmap_filename=dissimilarity_memmap_filename,
                                                      use_consensus_distance=use_consensus_distance)
         self.select_dissimilar_instances_within_cluster = select_dissimilar_instances_within_cluster
         self.uncertainty_method = uncertainty_method
@@ -520,6 +548,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         return selected_clusters_instances_pairs
         
     def select_next_batch(self):
+        start_time = time.time()
         # populate self.clusters_df
         self._compute_cluster_densities()
         self._compute_cluster_coverage()
@@ -530,5 +559,6 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         # compute cluster exploitation and exploration weights
         self._compute_cluster_exploitation_weight()
         self._compute_cluster_exploration_weight()
+        print("Done computing cluster properties. Took {} seconds.".format(time.time()-start_time))
         
         return super(ClusterBasedWCSelector, self).select_next_batch()
