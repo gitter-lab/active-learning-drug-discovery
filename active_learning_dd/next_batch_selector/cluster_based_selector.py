@@ -143,18 +143,18 @@ class ClusterBasedSelector(NBSBase):
         # get qualifying candidate exploitation and exploration clusters
         start_time=time.time()
         candidate_exploitation_clusters = self._get_candidate_exploitation_clusters()
-        print("Done _get_candidate_exploitation_clusters. Took {} seconds.".format(time.time()-start_time))
+        print("Done _get_candidate_exploitation_clusters. Took {} seconds. size: {}".format(time.time()-start_time, candidate_exploitation_clusters.shape))
         start_time=time.time()
         candidate_exploration_clusters = self._get_candidate_exploration_clusters()
-        print("Done _get_candidate_exploration_clusters. Took {} seconds.".format(time.time()-start_time))    
+        print("Done _get_candidate_exploration_clusters. Took {} seconds. size: {}".format(time.time()-start_time, candidate_exploration_clusters.shape))
 
         # get exploration and exploitation count estimates
         start_time=time.time()
         candidate_exploitation_instances_total = self._get_candidate_exploitation_instances_total(candidate_exploitation_clusters)
-        print("Done _get_candidate_exploitation_instances_total. Took {} seconds.".format(time.time()-start_time))
+        print("Done _get_candidate_exploitation_instances_total: {}. Took {} seconds.".format(candidate_exploitation_instances_total, time.time()-start_time))
         start_time=time.time()
         candidate_exploration_instances_total = self._get_candidate_exploration_instances_total(candidate_exploration_clusters)
-        print("Done _get_candidate_exploration_instances_total. Took {} seconds.".format(time.time()-start_time))    
+        print("Done _get_candidate_exploration_instances_total: {}. Took {} seconds.".format(candidate_exploration_instances_total, time.time()-start_time))    
 
         # compute budget assigned to exploitation vs exploration
         exploitation_budget = self._get_ee_budget(candidate_exploitation_instances_total, 
@@ -165,8 +165,10 @@ class ClusterBasedSelector(NBSBase):
         selected_exploitation_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploitation_clusters, 
                                                                                              exploitation_budget, 
                                                                                              useExploitationStrategy=True)
-        print("Done _select_instances_from_clusters-candidate_exploitation_clusters. Took {} seconds.".format(time.time()-start_time))
+        print("Done _select_instances_from_clusters-candidate_exploitation_clusters: {}. Took {} seconds.".format(sum([len(x[1]) for x in selected_exploitation_cluster_instances_pairs]), 
+                                                                                                                  time.time()-start_time))
         # start selecting exploration instances from exploration clusters
+        # update exploration_budget 
         start_time=time.time()
         selected_exploitation_clusters = []
         selected_exploitation_instances_count = 0
@@ -177,11 +179,12 @@ class ClusterBasedSelector(NBSBase):
         exploration_budget = self.batch_size - selected_exploitation_instances_count
         update_exploration_clusters = np.setdiff1d(candidate_exploration_clusters, selected_exploitation_clusters)
         candidate_exploration_clusters = update_exploration_clusters
-        
+            
         selected_exploration_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
                                                                                             exploration_budget, 
                                                                                             useExploitationStrategy=False)
-        print("Done _select_instances_from_clusters-candidate_exploration_clusters. Took {} seconds.".format(time.time()-start_time))
+        print("Done _select_instances_from_clusters-candidate_exploration_clusters: {}. Took {} seconds.".format(sum([len(x[1]) for x in selected_exploration_cluster_instances_pairs]),
+                                                                                                                 time.time()-start_time))
         
         return (selected_exploitation_cluster_instances_pairs, 
                 selected_exploration_cluster_instances_pairs)
@@ -372,7 +375,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                         candidate_clusters, 
                                         total_budget,
                                         useExploitationStrategy=True):
-        selected_instances_cluster, remaining_cluster_budget = None, None
+        selected_clusters_instances_pairs = None
         if useExploitationStrategy:
             selected_clusters_instances_pairs = self._select_instances_from_clusters_weighted(candidate_clusters, 
                                                                                               total_budget, 
@@ -408,11 +411,12 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                  useIntraClusterThreshold=True,
                                                  useProportionalClusterBudget=False,
                                                  selectDissimilarInstancesWithinCluster=True):
-        print('Selecting {} clusters'.format(weight_column))
         selected_clusters_instances_pairs = []
+        if len(candidate_clusters) == 0:
+            return selected_clusters_instances_pairs
+        
         curr_cluster_budget = 0
-        if len(candidate_clusters) != 0:
-            curr_cluster_budget = np.nan_to_num(np.ceil(total_budget / len(candidate_clusters)))
+        curr_cluster_budget = np.nan_to_num(np.ceil(total_budget / len(candidate_clusters)))
         if useProportionalClusterBudget:
             cluster_unlabeled_counts = self._get_candidate_exploration_instances_per_cluster_count(candidate_clusters)
             total_unlabeled_counts = np.sum(cluster_unlabeled_counts)
@@ -456,6 +460,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         # select remaining clusters based on what was already selected
         i=1
         while i < len(candidate_clusters) and remaining_total_budget > 0:
+            start_time1 = time.time()
             last_selected_cluster = selected_clusters_instances_pairs[-1][0]
             _, avg_cluster_dissimilarity = self._get_avg_cluster_dissimilarity([last_selected_cluster], 
                                                                                candidate_clusters[rem_candidate_clusters])
@@ -491,7 +496,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
             else:
                 selected_instances_cluster, remaining_cluster_budget = self._select_random_instances(cluster_instance_idx, 
                                                                                                      curr_cluster_budget)
-                                                                                                                         
+            
             prev_sum_cluster_dissimilarity[rem_candidate_clusters] = np.delete(avg_cluster_dissimilarity, highest_w_idx) * len(selected_clusters_instances_pairs)
             
             selected_clusters_instances_pairs.append((curr_selected_cluster,))
@@ -499,6 +504,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
             remaining_total_budget -= len(selected_instances_cluster)
             
             i+=1
+        
         return selected_clusters_instances_pairs
     
     """
@@ -561,4 +567,37 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self._compute_cluster_exploration_weight()
         print("Done computing cluster properties. Took {} seconds.".format(time.time()-start_time))
         
-        return super(ClusterBasedWCSelector, self).select_next_batch()
+        selected_exploitation_cluster_instances_pairs, selected_exploration_cluster_instances_pairs = super(ClusterBasedWCSelector, self).select_next_batch()
+        
+        # account for case when we have more room in the budget 
+        # remaining budget allocated toward exploration by just picking the top-ranked unselected clusters by exploration weight
+        selected_exploitation_clusters = []
+        selected_exploitation_instances_count = 0
+        selected_exploration_clusters = []
+        selected_exploration_instances_count = 0
+        if len(selected_exploitation_cluster_instances_pairs) > 0:
+            selected_exploitation_clusters = [x[0] for x in selected_exploitation_cluster_instances_pairs]
+            selected_exploitation_instances = [x[1] for x in selected_exploitation_cluster_instances_pairs]
+            selected_exploitation_instances_count = np.hstack(selected_exploitation_instances).shape[0]
+        
+        if len(selected_exploration_cluster_instances_pairs) > 0:
+            selected_exploration_clusters = [x[0] for x in selected_exploration_cluster_instances_pairs]
+            selected_exploration_instances = [x[1] for x in selected_exploration_cluster_instances_pairs]
+            selected_exploration_instances_count = np.hstack(selected_exploration_instances).shape[0]
+        exploration_budget = self.batch_size - (selected_exploitation_instances_count + selected_exploration_instances_count)
+        
+        if exploration_budget > 0 and self.exploration_strategy == "weighted":
+            candidate_exploration_clusters = np.setdiff1d(self.clusters_df['Cluster ID'].values, 
+                                                          np.union1d(selected_exploitation_clusters, selected_exploration_clusters))
+            
+            candidate_exploration_clusters_weights = self.clusters_df['Exploration Weight'].loc[candidate_exploration_clusters].values
+            top_k_exploration_clusters = np.argsort(candidate_exploration_clusters_weights)[::-1][:exploration_budget]
+            candidate_exploration_clusters = candidate_exploration_clusters[top_k_exploration_clusters]
+            
+            remaining_selected_exploration_cluster_instances_pairs = self._select_instances_from_clusters(candidate_exploration_clusters, 
+                                                                                                          exploration_budget, 
+                                                                                                          useExploitationStrategy=False)
+            selected_exploration_cluster_instances_pairs.extend(remaining_selected_exploration_cluster_instances_pairs)
+            
+        return (selected_exploitation_cluster_instances_pairs, 
+                selected_exploration_cluster_instances_pairs)

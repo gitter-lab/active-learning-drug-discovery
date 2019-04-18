@@ -72,7 +72,7 @@ def get_avg_cluster_dissimilarity(clusters,
                                   selected_cluster_ids, 
                                   candidate_cluster_ids,
                                   feature_dist_func=tanimoto_dissimilarity,
-                                  candidate_cluster_batch_size=20):
+                                  candidate_cluster_batch_size=2056):
     clusters_ordered_ids = candidate_cluster_ids[:]
     clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     

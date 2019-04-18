@@ -47,8 +47,6 @@
     "batch_csv": "/{}.csv",
 	"summary_dest_file": "summary.csv",
     
-    "dissimilarity_memmap_filename" : "../datasets/dissimilarity_matrix_94857_94857.dat",
-    
     "task_names": "PriA-SSB Activity",
     
     "cherry_picking_time_per_cpd": 100.0,

@@ -236,10 +236,12 @@ def summarize_simulation(params_set_results_dir,
         eval_dest_file = iter_d+'/'+pipeline_config['common']['eval_dest_file']
         metrics_df_list.append(pd.read_csv(eval_dest_file))
 
-    summary_df = pd.concat(metrics_df_list)
-    summary_df = pd.concat([summary_df[[m for m in summary_df.columns if 'ratio' not in m]].sum(),
-                            summary_df[[m for m in summary_df.columns if 'ratio' in m]].mean()]).to_frame().T
+    metrics_df_concat = pd.concat(metrics_df_list)
+    metrics_ordering = [m for m in metrics_df_concat.columns if 'ratio' not in m] + [m for m in metrics_df_concat.columns if 'ratio' in m]
+    summary_df = pd.concat([metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' not in m]].sum(),
+                            metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' in m]].mean()]).to_frame().T
     summary_df.index = ['total']
+    summary_df = pd.concat([metrics_df_concat[metrics_ordering], summary_df])
     summary_df.to_csv(summary_dest_file, index=False)
     
 class SimulationParameterGrid(ParameterGrid):

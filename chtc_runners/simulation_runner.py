@@ -9,6 +9,7 @@
         --iter_max=5 \ 
         --process_num=$process_num \
         --batch_size_index=0 \
+        --rnd_seed=0 \
         --no-random_param_sampling \
         --no-precompute_dissimilarity_matrix
 """
@@ -38,9 +39,10 @@ if __name__ ==  '__main__':
     parser.add_argument('--pipeline_params_json_file', action="store", dest="pipeline_params_json_file", required=True)
     parser.add_argument('--nbs_params_json_file', action="store", dest="nbs_params_json_file", required=True)
     parser.add_argument('--exploration_strategy', action="store", dest="exploration_strategy", required=True)
-    parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=False)
-    parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=False)
-    parser.add_argument('--batch_size_index', type=int, default=0, action="store", dest="batch_size_index", required=False)
+    parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=True)
+    parser.add_argument('--process_num', type=int, default=0, action="store", dest="process_num", required=True)
+    parser.add_argument('--batch_size_index', type=int, default=0, action="store", dest="batch_size_index", required=True)
+    parser.add_argument('--rnd_seed', type=int, default=0, action="store", dest="rnd_seed", required=True)
     parser.add_argument('--random_param_sampling', dest='random_param_sampling', action='store_true')
     parser.add_argument('--no-random_param_sampling', dest='random_param_sampling', action='store_false')
     parser.add_argument('--precompute_dissimilarity_matrix', dest='precompute_dissimilarity_matrix', action='store_true')
@@ -54,6 +56,7 @@ if __name__ ==  '__main__':
     iter_max = given_args.iter_max
     process_num = given_args.process_num
     batch_size_index = given_args.batch_size_index
+    rnd_seed = given_args.rnd_seed
     random_param_sampling = given_args.random_param_sampling
     precompute_dissimilarity_matrix = given_args.precompute_dissimilarity_matrix
     
@@ -67,7 +70,7 @@ if __name__ ==  '__main__':
     param_sampling_str = param_sampling_str[random_param_sampling]
     
     print(param_sampling_str)
-    next_batch_selector_params = get_param_from_dist(nbs_config, rnd_seed=process_num, 
+    next_batch_selector_params = get_param_from_dist(nbs_config, rnd_seed=rnd_seed, 
                                                      use_uniform=random_param_sampling, 
                                                      exploration_strategy=exploration_strategy)
     
@@ -77,8 +80,8 @@ if __name__ ==  '__main__':
     pathlib.Path(params_set_config_csv).parent.mkdir(parents=True, exist_ok=True)
     with open(params_set_config_csv,'w') as f:
         csv_w = csv.writer(f)
-        csv_w.writerow(next_batch_selector_params.keys())
-        csv_w.writerow(next_batch_selector_params.values())
+        csv_w.writerow(list(next_batch_selector_params.keys()) + ['rnd_seed'])
+        csv_w.writerow(list(next_batch_selector_params.values()) + [rnd_seed])
     # run this param set for each batch size
     batch_size_list = next_batch_selector_params["batch_size"]
     batch_size = batch_size_list[batch_size_index]
@@ -87,6 +90,12 @@ if __name__ ==  '__main__':
     next_batch_selector_params["batch_size"] = batch_size
     batch_size_results_dir = params_set_results_dir + pipeline_config['common']['batch_size_results_dir'].format(batch_size)
     
+    pathlib.Path(batch_size_results_dir+'/'+pipeline_config['common']['params_set_config_csv']).parent.mkdir(parents=True, exist_ok=True)
+    with open(batch_size_results_dir+'/'+pipeline_config['common']['params_set_config_csv'],'w') as f:
+        csv_w = csv.writer(f)
+        csv_w.writerow(list(next_batch_selector_params.keys()) + ['rnd_seed'])
+        csv_w.writerow(list(next_batch_selector_params.values()) + [rnd_seed])
+        
     try: 
         pipeline_config['common']['dissimilarity_memmap_filename']
     except:
@@ -95,15 +104,13 @@ if __name__ ==  '__main__':
     if precompute_dissimilarity_matrix:
         if pipeline_config['common']['dissimilarity_memmap_filename'] is None:
             pipeline_config['unlabeled_data_params']['data_path_format'] = '../datasets/dissimilarity_matrix.dat'
-            compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
-                                         output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
-        else:
-            compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
-                                         output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
+        compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
+                                     output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
     
     # run iterations for this simulation
     for iter_num in range(iter_max):
         iter_start_time = time.time()
+        print('---------------------------------------------------------------')
         print('Processing iteration number: {}...'.format(iter_num))
         #### Run single iteration of active learning pipeline ####
         selection_start_time = time.time()
