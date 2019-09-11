@@ -185,7 +185,6 @@ class ClusterBasedSelector(NBSBase):
                                                                                             useExploitationStrategy=False)
         print("Done _select_instances_from_clusters-candidate_exploration_clusters: {}. Took {} seconds.".format(sum([len(x[1]) for x in selected_exploration_cluster_instances_pairs]),
                                                                                                                  time.time()-start_time))
-        
         return (selected_exploitation_cluster_instances_pairs, 
                 selected_exploration_cluster_instances_pairs)
                 
@@ -447,8 +446,9 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
                                                                                                          curr_cluster_budget,
                                                                                                          useIntraClusterThreshold=useIntraClusterThreshold)
             else:
-                selected_instances_cluster, remaining_cluster_budget = self._select_random_instances(curr_selected_cluster, 
+                selected_instances_cluster, remaining_cluster_budget = self._select_random_instances(cluster_instance_idx, 
                                                                                                      curr_cluster_budget)
+            
             selected_clusters_instances_pairs.append((curr_selected_cluster,))
             selected_clusters_instances_pairs[-1] = selected_clusters_instances_pairs[-1] + (selected_instances_cluster,)
             remaining_total_budget -= len(selected_instances_cluster)

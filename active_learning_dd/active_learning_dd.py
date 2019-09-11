@@ -70,12 +70,14 @@ def get_next_batch(training_loader_params,
     selected_exploration_cluster_instances_pairs = selected_clusters_instances_pairs[1]
     end_time = time.time()
     print('Finished selecting next batch. Took {} seconds.'.format(end_time - start_time))
-
+    
     # get unlabeled dataframe slice corresponding to selected pairs
     unlabeled_df = unlabeled_loader.get_dataframe()
     exploitation_array = unroll_cluster_instances_pairs(selected_exploitation_cluster_instances_pairs)
     exploration_array = unroll_cluster_instances_pairs(selected_exploration_cluster_instances_pairs)
 
+    print('Unlabeled data shape unlabeled_df: {}'.format(unlabeled_df.shape))
+    print(exploration_array[:,0])
     exploitation_df, exploration_df = None, None
     if exploitation_array is not None:
         exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]

@@ -80,10 +80,12 @@ class NBSBase(object):
                     qualifying_idx.append(np.where(intra_cluster_dissimilarity[idx,:] >= self.intra_cluster_dissimilarity_threshold)[0])
                 
                 qualifying_idx = reduce(np.intersect1d, qualifying_idx)
-                if qualifying_idx.shape[0] == 0:
-                    break
             else:
                 qualifying_idx = range(intra_cluster_dissimilarity.shape[1])
+            
+            qualifying_idx = np.setdiff1d(qualifying_idx, selected_instances)
+            if qualifying_idx.shape[0] == 0:
+                break
                 
             sub_matrix = intra_cluster_dissimilarity[selected_instances,:]
             avg_dissimilarity = np.mean(sub_matrix[:,qualifying_idx], axis=0)

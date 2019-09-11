@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import csv 
 import time
+import os
 
 from active_learning_dd.active_learning_dd import get_next_batch
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
@@ -59,6 +60,7 @@ if __name__ ==  '__main__':
     rnd_seed = given_args.rnd_seed
     random_param_sampling = given_args.random_param_sampling
     precompute_dissimilarity_matrix = given_args.precompute_dissimilarity_matrix
+    start_iter = 0
     
     # load param json configs
     with open(pipeline_params_json_file) as f:
@@ -90,7 +92,18 @@ if __name__ ==  '__main__':
     next_batch_selector_params["batch_size"] = batch_size
     batch_size_results_dir = params_set_results_dir + pipeline_config['common']['batch_size_results_dir'].format(batch_size)
     
-    pathlib.Path(batch_size_results_dir+'/'+pipeline_config['common']['params_set_config_csv']).parent.mkdir(parents=True, exist_ok=True)
+    if os.path.exists(batch_size_results_dir):
+        start_iter = len(glob.glob(batch_size_results_dir + '/iter_*')) - 1        
+    else:
+        pathlib.Path(batch_size_results_dir+'/'+pipeline_config['common']['params_set_config_csv']).parent.mkdir(parents=True, exist_ok=True)
+        
+    # modify location of training data to be able to continue jobs
+    if not os.path.exists(batch_size_results_dir + '/training_data/'):
+        import shutil
+        shutil.copytree(pathlib.Path(pipeline_config['training_data_params']['data_path_format']).parent, 
+                        batch_size_results_dir + '/training_data')
+    pipeline_config['training_data_params']['data_path_format'] = batch_size_results_dir + '/training_data/iter_{}.csv'
+        
     with open(batch_size_results_dir+'/'+pipeline_config['common']['params_set_config_csv'],'w') as f:
         csv_w = csv.writer(f)
         csv_w.writerow(list(next_batch_selector_params.keys()) + ['rnd_seed'])
@@ -103,12 +116,12 @@ if __name__ ==  '__main__':
     
     if precompute_dissimilarity_matrix:
         if pipeline_config['common']['dissimilarity_memmap_filename'] is None:
-            pipeline_config['unlabeled_data_params']['data_path_format'] = '../datasets/dissimilarity_matrix.dat'
+            pipeline_config['common']['dissimilarity_memmap_filename'] = '../datasets/dissimilarity_matrix.dat'
         compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
                                      output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
     
     # run iterations for this simulation
-    for iter_num in range(iter_max):
+    for iter_num in range(start_iter, iter_max):
         iter_start_time = time.time()
         print('---------------------------------------------------------------')
         print('Processing iteration number: {}...'.format(iter_num))

@@ -15,7 +15,9 @@
         --cutoff=0.3 \
         --dist_function=tanimoto_dissimilarity \
         --process_count=4 \
-        --dissimilarity_memmap_filename=../../datasets/dissimilarity_matrix_94857_94857.dat
+        --process_batch_size=2**17 \
+        --dissimilarity_memmap_filename=../../datasets/dissimilarity_matrix_94857_94857.dat \ 
+        --index_name="Index ID"
 """
 from __future__ import print_function
 
@@ -55,6 +57,8 @@ def get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batc
 """
     Function wrapper method for computing dissimilarity_matrix for a range of indices.
     Used with multiprocessing.
+    
+    REMOVE IN FUTURE
 """
 def compute_dissimilarity_matrix_wrapper_oldest(start_ind, end_ind,
                                                 n_instances, n_features,
@@ -82,6 +86,8 @@ def compute_dissimilarity_matrix_wrapper_oldest(start_ind, end_ind,
 """
     Function wrapper method for computing dissimilarity_matrix for a range of indices.
     Used with multiprocessing.
+    
+    REMOVE IN FUTURE
 """
 def compute_dissimilarity_matrix_wrapper_old(start_ind, end_ind,
                                              n_instances, n_features,
@@ -464,7 +470,7 @@ if __name__ ==  '__main__':
     parser.add_argument('--dist_function', default='tanimoto_dissimilarity', action="store", 
                         dest="dist_function", required=False)
     parser.add_argument('--process_count', type=int, default=1, action="store", dest="process_count", required=False)
-    parser.add_argument('--process_batch_size', type=int, default=2**17, action="store", dest="process_batch_size", required=False)
+    parser.add_argument('--process_batch_size', type=int, default=2**16, action="store", dest="process_batch_size", required=False)
     parser.add_argument('--dissimilarity_memmap_filename', default=None, action="store", dest="dissimilarity_memmap_filename", required=False)
     parser.add_argument('--index_name', default='Index ID', action="store", dest="index_name", required=False)
     
@@ -495,5 +501,5 @@ if __name__ ==  '__main__':
                      dissimilarity_memmap_filename=dissimilarity_memmap_filename)
     
     # clean up tmp directory 
-    #import shutil
-    #shutil.rmtree(tmp_dir)
+    import shutil
+    shutil.rmtree(tmp_dir)

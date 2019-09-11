@@ -13,6 +13,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 import glob
+import os
 
 from active_learning_dd.utils.evaluation import eval_on_metrics
 from active_learning_dd.database_loaders.prepare_loader import prepare_loader
@@ -234,7 +235,10 @@ def summarize_simulation(params_set_results_dir,
     for i in range(len(iter_dirs)):
         iter_d = params_set_results_dir+'/'+pipeline_config['common']['iter_results_dir'].format(i)
         eval_dest_file = iter_d+'/'+pipeline_config['common']['eval_dest_file']
-        metrics_df_list.append(pd.read_csv(eval_dest_file))
+        if not os.path.exists(eval_dest_file):
+            print(eval_dest_file, '\nDoes not exist.')
+        else:
+            metrics_df_list.append(pd.read_csv(eval_dest_file))
 
     metrics_df_concat = pd.concat(metrics_df_list)
     metrics_ordering = [m for m in metrics_df_concat.columns if 'ratio' not in m] + [m for m in metrics_df_concat.columns if 'ratio' in m]
