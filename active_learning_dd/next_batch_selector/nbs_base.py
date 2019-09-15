@@ -105,7 +105,8 @@ class NBSBase(object):
                                  budget,
                                  instance_proba=None):
         remaining_budget = budget
-        selected_instances = list(np.random.choice(original_instance_idx, size=int(remaining_budget), 
+        sample_size = min(len(original_instance_idx), int(remaining_budget))
+        selected_instances = list(np.random.choice(original_instance_idx, size=sample_size, 
                                                    replace=False, p=instance_proba))
         remaining_budget -= len(selected_instances)
         return selected_instances, remaining_budget
