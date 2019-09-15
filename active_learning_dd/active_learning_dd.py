@@ -76,8 +76,6 @@ def get_next_batch(training_loader_params,
     exploitation_array = unroll_cluster_instances_pairs(selected_exploitation_cluster_instances_pairs)
     exploration_array = unroll_cluster_instances_pairs(selected_exploration_cluster_instances_pairs)
 
-    print('Unlabeled data shape unlabeled_df: {}'.format(unlabeled_df.shape))
-    print(exploration_array[:,0])
     exploitation_df, exploration_df = None, None
     if exploitation_array is not None:
         exploitation_df = unlabeled_df.iloc[exploitation_array[:,0],:]
