@@ -194,21 +194,36 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
     # record rest of metrics
     exploitation_metrics_mat = np.vstack([exploitation_metrics_mat, [[exploitation_batch_size], [exploitation_batch_cost]]])
     exploration_metrics_mat = np.vstack([exploration_metrics_mat, [[exploration_batch_size], [exploration_batch_cost]]])
+    
+    # construct exploitation + exploration metrics
+    total_df = pd.concat([exploitation_df, exploration_df])
+    if (exploitation_df is not None) and (exploration_df is not None):
+        total_array = np.vstack([exploitation_array, exploration_array])
+    elif  (exploitation_df is not None) and (exploration_df is None):
+        total_array = exploitation_array
+    elif  (exploitation_df is None) and (exploration_df is not None):
+        total_array = exploration_array
+    else:
+        raise ValueError('Error in evaluating batch: total selection array is empty.')
+        
+    total_metrics_mat, metrics_names = eval_on_metrics(total_df[task_names].values, np.ones_like(total_df[task_names].values), 
+                                                       train_clusters, total_array[:,1],
+                                                       max_hits_list, max_cluster_hits_list, max_novel_hits_list,
+                                                       add_mean_medians, w_novelty, perc_vec)
     metrics_names = metrics_names + ['batch_size', 'batch_cost']
-
-    total_metrics_mat = np.zeros_like(exploitation_metrics_mat)
-    for i, metric in enumerate(metrics_names):
-        total_res = 0
-        if 'ratio' not in metric:
-            total_metrics_mat[i] = (exploitation_metrics_mat[i] + exploration_metrics_mat[i])
-        else:
-            total_metrics_mat[i] = total_metrics_mat[i-2] / total_metrics_mat[i-1]
-            
+    
     total_batch_size = exploitation_batch_size + exploration_batch_size
+    try:
+        total_batch_cost = total_df[cost_col_name].values.astype(float)
+    except:
+        total_batch_cost = np.ones(shape=(total_df.shape[0],))
+    total_batch_cost = np.sum(total_batch_cost)
+    total_metrics_mat = np.vstack([total_metrics_mat, [[total_batch_size], [total_batch_cost]]])
+    
     total_cherry_picking_time = total_batch_size * pipeline_config['common']['cherry_picking_time_per_cpd']
     screening_time_per_batch = pipeline_config['common']['screening_time_per_batch'] 
     total_screening_time = total_cherry_picking_time + screening_time_per_batch
-
+    
     metrics_mat = np.vstack([exploitation_metrics_mat, exploration_metrics_mat, total_metrics_mat, 
                             [[total_cherry_picking_time]], [[screening_time_per_batch]], [[total_screening_time]]])
     metrics_names = ['exploitation_'+m for m in metrics_names] + \
@@ -220,6 +235,7 @@ def evaluate_selected_batch(exploitation_df, exploration_df,
     metrics_df = pd.DataFrame(data=metrics_mat,
                               columns=[iter_num],
                               index=metrics_names).T
+    metrics_df.index.name = 'iter_num'
     metrics_df.to_csv(eval_dest_file, index=True)
 	
 """
@@ -241,10 +257,10 @@ def summarize_simulation(params_set_results_dir,
             metrics_df_list.append(pd.read_csv(eval_dest_file))
 
     metrics_df_concat = pd.concat(metrics_df_list)
-    metrics_ordering = [m for m in metrics_df_concat.columns if 'ratio' not in m] + [m for m in metrics_df_concat.columns if 'ratio' in m]
-    summary_df = pd.concat([metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' not in m]].sum(),
-                            metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' in m]].mean()]).to_frame().T
-    summary_df.index = ['total']
+    metrics_ordering = [m for m in metrics_df_concat.columns if 'ratio' not in m or 'exploration' in m] + [m for m in metrics_df_concat.columns if 'ratio' in m and 'exploration' not in m]
+    summary_df = pd.concat([metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' not in m or 'exploration' in m]].sum(),
+                            metrics_df_concat[[m for m in metrics_df_concat.columns if 'ratio' in m and 'exploration' not in m]].mean()]).to_frame().T
+    summary_df.iloc[-1,0] = 9999
     summary_df = pd.concat([metrics_df_concat[metrics_ordering], summary_df])
     summary_df.to_csv(summary_dest_file, index=False)
     

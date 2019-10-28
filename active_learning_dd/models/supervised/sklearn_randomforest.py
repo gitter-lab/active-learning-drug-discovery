@@ -45,6 +45,7 @@ class SklearnRF(SupervisedModel):
     
     def fit(self, X_train, y_train):
         # perform random shuffling of training data (including X_train)
+        np.random.seed(self.random_state)
         shuffle_p = np.random.permutation(X_train.shape[0])
         X_train = X_train[shuffle_p]
         y_train = y_train[shuffle_p]

@@ -15,16 +15,16 @@ from .metrics import *
 """
     Helper function that maintains the list of metric names.
 """
-def _get_metrics_names(perc_vec, n_tests_list):
-    return ['hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['max_hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['norm_hits_ratio_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['cluster_hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['max_cluster_hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['norm_cluster_hits_ratio_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['novel_hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['max_novel_hits_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
-           ['norm_novel_hits_ratio_at_{}'.format(n_tests) for n_tests in n_tests_list] + \
+def _get_metrics_names(perc_vec):
+    return ['hits'] + \
+           ['max_hits'] + \
+           ['norm_hits_ratio'] + \
+           ['cluster_hits'] + \
+           ['max_cluster_hits'] + \
+           ['norm_cluster_hits_ratio'] + \
+           ['novel_hits'] + \
+           ['max_novel_hits'] + \
+           ['norm_novel_hits_ratio'] + \
            ['ROC AUC ratio', 'PR AUC ratio'] + \
            ['NEF {}% ratio'.format(perc*100) for perc in perc_vec] + \
            ['Random NEF {}% ratio'.format(perc*100) for perc in perc_vec] + \
@@ -40,7 +40,7 @@ def eval_on_metrics(y_true, y_preds,
                     max_hits_list, max_cluster_hits_list, max_novel_hits_list,
                     add_mean_medians, w_novelty, perc_vec):
     if y_true is None:
-        metrics_names = _get_metrics_names(perc_vec, [0])
+        metrics_names = _get_metrics_names(perc_vec)
         metrics_res_list = []  
         metrics_res_mat = np.ones(shape=(len(metrics_names),1))*np.nan
         return metrics_res_mat, metrics_names
@@ -49,7 +49,7 @@ def eval_on_metrics(y_true, y_preds,
     max_cluster_hits_list = [min(x, y_true.shape[0]) for x in max_cluster_hits_list]
     max_novel_hits_list = [min(x, y_true.shape[0]) for x in max_novel_hits_list]
     n_tests_list = [y_true.shape[0]]
-    metrics_names = _get_metrics_names(perc_vec, n_tests_list)
+    metrics_names = _get_metrics_names(perc_vec)
     
     # process roc and pr auc
     roc_auc_arr = roc_auc(y_true, y_preds)
