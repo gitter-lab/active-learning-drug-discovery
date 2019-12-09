@@ -1,0 +1,12 @@
+{
+    "class": ["MABSelector"],
+  
+    "batch_size": [96, 384, 1536],
+    
+    "uncertainty_method": "least_confidence",
+    "uncertainty_alpha": 0.5,
+        
+    "rnd_seed": 751124233, 
+    "hyperparameter_id": "MABSelector_0", 
+    "hyperparameter_group": "benchmark"
+}

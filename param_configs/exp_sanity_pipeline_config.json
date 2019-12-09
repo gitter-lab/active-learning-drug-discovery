@@ -28,7 +28,7 @@
     
   "unlabeled_data_params": {
     "data_loader_class": "CSVLoader",
-    "data_path_format": "../datasets/aid624173_cv_96_scrambled/unlabeled_{}.csv",
+    "data_path_format": "../datasets/aid624173_cv_96_randomize_actives/unlabeled_{}.csv",
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",

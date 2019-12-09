@@ -258,6 +258,7 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
         self.use_proportional_cluster_budget_for_exploration = use_proportional_cluster_budget_for_exploration
         
         # create pandas df for various cluster calculations
+        # creates only cluster IDs for clusters with unlabeled instances 
         u_clusters, c_clusters = np.unique(self.clusters_unlabeled,
                                            return_counts=True)
         self.total_clusters = len(u_clusters)
@@ -333,7 +334,13 @@ class ClusterBasedWCSelector(ClusterBasedSelector):
             qualifying_exploitation_clusters = self.clusters_df['Exploitation Weight'] >= np.percentile(self.clusters_df['Exploitation Weight'], 100.0*self.exploitation_weight_threshold)
         else:
             qualifying_exploitation_clusters = self.clusters_df['Exploitation Weight'] >= self.exploitation_weight_threshold
-        candidate_exploitation_clusters = self.clusters_df[qualifying_exploitation_clusters]['Cluster ID'].values
+        candidate_exploitation_clusters = self.clusters_df[qualifying_exploitation_clusters]
+        
+        # remove exploitation clusters that do not have positive high activity prediction
+        if self.exploitation_sample_actives_from_clusters:
+            candidate_exploitation_clusters = candidate_exploitation_clusters[candidate_exploitation_clusters['High Activity Prediction Count'] > 0]
+        
+        candidate_exploitation_clusters = candidate_exploitation_clusters['Cluster ID'].values
         return candidate_exploitation_clusters
         
     def _get_candidate_exploration_clusters(self):

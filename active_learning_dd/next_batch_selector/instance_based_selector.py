@@ -69,10 +69,10 @@ class InstanceBasedWCSelector(ClusterBasedWCSelector):
                                             len(self.clusters_train) + len(self.clusters_unlabeled))
         
         # redefine pandas df for instance case
-        self.total_clusters = len(self.clusters_train) + len(self.clusters_unlabeled)
-        self.clusters_df = pd.DataFrame(data=np.nan*np.zeros((self.total_clusters, len(self.cluster_cols)),
+        self.total_clusters = len(self.clusters_unlabeled)
+        self.clusters_df = pd.DataFrame(data=np.nan*np.zeros((self.total_clusters, len(self.cluster_cols))),
                                         columns=self.cluster_cols)
-        self.clusters_df['Cluster ID'] = np.arange(len(self.clusters_train) + len(self.clusters_unlabeled))
+        self.clusters_df['Cluster ID'] = self.clusters_unlabeled
         self.clusters_df['Cluster Mol Count'] = 1
         self.clusters_df.index = self.clusters_df['Cluster ID']
         

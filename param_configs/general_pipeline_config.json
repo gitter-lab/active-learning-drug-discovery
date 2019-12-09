@@ -10,7 +10,7 @@
         "class_weight": "balanced",
         "random_state": 20183112,
         "oob_score": false,
-        "verbose": 1
+        "verbose": 0
     }
   },
   

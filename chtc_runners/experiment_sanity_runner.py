@@ -1,10 +1,10 @@
 """
     Runs an active learning simulation for experiment 2.
-    Experiment 2: randomly scramble task labels and check that no label leakage occurs; the selected compounds should not change.
+    Experiment Sanity Checker: randomly scramble task labels and check that no label leakage occurs; the selected compounds should not change.
     
     Usage:
-        python experiment_2_runner.py \
-        --pipeline_params_json_file=../param_configs/exp2_pipeline_config.json \
+        python experiment_sanity_runner.py \
+        --pipeline_params_json_file=../param_configs/exp_sanity_pipeline_config.json \
         --hyperparams_json_file=../param_configs/first_pass_hyperparams/top/batch_size_1536/ClusterBasedWCSelector_201.json \
         --initial_dataset_file=../datasets/aid624173_cv_96_scrambled/unlabeled_1179.csv
         --iter_max=1 \ 
