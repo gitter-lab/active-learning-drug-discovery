@@ -13,6 +13,8 @@ def stratify_target(data_df, output_dir, task_col_name,
     data_df = data_df[~pd.isna(data_df[task_col_name])]
     data_df = data_df.sort_values('Index ID')
     data_df = data_df.reset_index(drop=True)
+    data_df = data_df.dropna()
+    
     active_indices = np.where(data_df[task_col_name] == 1)[0]
     inactive_indices = np.where(data_df[task_col_name] == 0)[0]
     

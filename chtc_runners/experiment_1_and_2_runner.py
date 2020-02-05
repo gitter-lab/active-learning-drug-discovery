@@ -1,10 +1,11 @@
 """
-    Runs an active learning simulation for experiment 1.
-    Experiment 1: random initial starting sets.
+    Runs an active learning simulation for experiment 1 and 2.
+    Experiment 1: 10 random initial starting sets for aid624173 target for 10 iters. Prune to top-performing hyperparameters.
+    Experiment 2: 10 random initial starting sets for aid624173 target for 50 iters. Further prune for experiment 3.
     
     Usage:
-        python experiment_1_runner.py \
-        --pipeline_params_json_file=../param_configs/exp1_pipeline_config.json \
+        python experiment_1_and_2_runner.py \
+        --pipeline_params_json_file=../param_configs/exp_1_and_2_pipeline_config.json \
         --hyperparams_json_file=../param_configs/first_pass_hyperparams/middle/batch_size_96/ClusterBasedWCSelector_55.json \
         --initial_dataset_file=../datasets/aid624173_cv_96/unlabeled_1338.csv
         --iter_max=3 \ 

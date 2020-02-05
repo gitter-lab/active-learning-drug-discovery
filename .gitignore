@@ -102,12 +102,7 @@ ENV/
 
 datasets/*
 params_results/*
-analysis_notebooks/EE-Test Strategy Analysis.ipynb
-analysis_notebooks/Stratify LC1234.ipynb
-analysis_notebooks/Stratify Sample Master DF-Copy1.ipynb
-params_results/ClusterBasedWCSelector_0/config.csv
-params_results/ClusterBasedWCSelector_0/config.csv
-params_results/ClusterBasedWCSelector_0/config.csv
+analysis_notebooks/*
 *.csv
 *.zip
 analysis_notebooks/IS-Cycles.ipynb
