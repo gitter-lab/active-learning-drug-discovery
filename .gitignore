@@ -118,3 +118,4 @@ active_learning_dd/utils/tmp/*
 analysis_notebooks/Thesis Visuals.ipynb
 *.dag
 *.txt
+*.gz
