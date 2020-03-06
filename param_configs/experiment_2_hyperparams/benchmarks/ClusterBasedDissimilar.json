@@ -1,5 +1,5 @@
 {
-    "class": "InstanceBasedWCSelector",
+    "class": "ClusterBasedWCSelector",
   
     "batch_size": [96, 384, 1536],
     
@@ -30,6 +30,6 @@
     "uncertainty_method": "least_confidence", 
     
     "rnd_seed": 241211243, 
-    "hyperparameter_id": "InstanceBasedDissimilar", 
+    "hyperparameter_id": "ClusterBasedDissimilar", 
     "hyperparameter_group": "benchmarks"
 }

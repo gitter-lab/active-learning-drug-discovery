@@ -37,40 +37,54 @@ def get_top_summary(all_df, summary_iter_num=9999):
     return top_df
 
 def get_hit_metrics(job_dir, iter_max=10, task_col='pcba-aid624173', cluster_col='BT_0.4 ID'):
-    def _get_hits_helper(df):
-        hits = df[task_col].sum()
-        unique_hits = df[df[task_col] == 1][cluster_col].unique().shape[0]
-        return hits, unique_hits
+    def _get_hits_helper(iter_df):
+        hits = iter_df[task_col].sum()
+        return hits
     
     des_cols = ['iter_num', 
                 'exploitation_hits', 'exploration_hits', 'total_hits',
-                'exploitation_unique_hits', 'exploration_unique_hits','total_unique_hits',
+                'total_unique_hits',
                 'exploitation_batch_size', 'exploration_batch_size', 'total_batch_size']
     iter_results = []
+    iter_dfs = [pd.read_csv(job_dir + "/training_data/iter_0.csv")]
     for iter_i in range(iter_max):
         iter_dir = job_dir + "/iter_{}/".format(iter_i)
         exploit_csv = iter_dir + 'exploitation.csv'
         explore_csv = iter_dir + 'exploration.csv'
         exploit_hits, exploit_unique_hits, exploit_batch_size = 0,0,0
         explore_hits, explore_unique_hits, explore_batch_size = 0,0,0
+        
+        curr_iter_dfs = []
         if os.path.exists(exploit_csv):
             exploit_df = pd.read_csv(exploit_csv)
-            exploit_hits, exploit_unique_hits = _get_hits_helper(exploit_df)
+            exploit_hits = _get_hits_helper(exploit_df)
             exploit_batch_size = exploit_df.shape[0]
+            
+            curr_iter_dfs.append(exploit_df)
         if os.path.exists(explore_csv):
             explore_df = pd.read_csv(explore_csv)
-            explore_hits, explore_unique_hits = _get_hits_helper(explore_df)
+            explore_hits = _get_hits_helper(explore_df)
             explore_batch_size = explore_df.shape[0]
+            
+            curr_iter_dfs.append(explore_df)
         
         total_hits = exploit_hits + explore_hits
-        total_unique_hits = exploit_unique_hits + explore_unique_hits
         total_batch_size = exploit_batch_size + explore_batch_size
+
+        curr_iter_df = pd.concat(curr_iter_dfs)
+        iter_hits = curr_iter_df[curr_iter_df[task_col] == 1] 
+        # unique hits are those that belong to a cluster for which we have not found a hit in previous iters
+        train_df = pd.concat(iter_dfs)
+        train_hits = train_df[train_df[task_col] == 1]
+        total_unique_hits = iter_hits[~iter_hits[cluster_col].isin(train_hits[cluster_col])]
+        total_unique_hits = total_unique_hits[cluster_col].unique().shape[0]
         
         iter_results.append([iter_i, 
                              exploit_hits, explore_hits, total_hits,
-                             exploit_unique_hits, explore_unique_hits, total_unique_hits,
+                             total_unique_hits,
                              exploit_batch_size, explore_batch_size, total_batch_size])
-        
+        iter_dfs.extend(curr_iter_dfs)
+
     job_df = pd.DataFrame(iter_results, 
                           columns=des_cols)
     job_df = pd.concat([job_df, job_df.sum().to_frame().T])
@@ -80,7 +94,7 @@ def get_hit_metrics(job_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
     return job_df
 
 def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col='BT_0.4 ID', run_count_threshold=5,
-                check_failure=True, drop_runs=True):
+                check_failure=True, drop_runs=True, isExp3=False):
     successful_jobs = []
     failed_jobs = []
 
@@ -88,8 +102,8 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
     all_384 = []
     all_1536 = []
     for i, rdir in enumerate(results_dir):
-        clear_output()
-        print('{}/{}'.format(i, len(results_dir)))
+        #clear_output()
+        #print('{}/{}'.format(i, len(results_dir)))
         
         config_file = rdir+'config.csv'
         
@@ -97,14 +111,22 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
         rd_splits = rdir.split('\\')
         hs_group = rd_splits[1]
         hs_id = rd_splits[2]
-        rf_id = rd_splits[3]
-        batch_size = rd_splits[4]
+        
+        if isExp3:
+            task_col = rd_splits[3]
+            rf_id = rd_splits[4]
+            batch_size = rd_splits[5]
+        else:
+            rf_id = rd_splits[3]
+            batch_size = rd_splits[4]
 
         # check that the job completed succesfully:
         # - exactly iter_max*batch_size cpds were selected and that they have unique Index ID
         batch_cpds = glob.glob(rdir+'iter_*/expl*.csv')
         if len(batch_cpds) > 0:
             cpd_df = pd.concat([pd.read_csv(x) for x in batch_cpds])
+            if cpd_df['Index ID'].unique().shape[0] < iter_max*int(batch_size.split('_')[-1]):
+                print('Failed at {}'.format(hs_id))
             if check_failure:
                 if cpd_df.shape[0] == iter_max*int(batch_size.split('_')[-1]):
                     successful_jobs.append('{}_rf_{}_{}'.format(hs_id, rf_id, batch_size))
@@ -128,6 +150,7 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
         job_df['hs_id'] = hs_id
         job_df['hs_group'] = hs_group
         job_df['config_file'] = config_file
+        job_df['task_col'] = task_col
         
         if int(batch_size.split('_')[-1]) == 96:
             all_96.append(job_df)
@@ -165,7 +188,6 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
     all_df = pd.concat([all_96, all_384, all_1536])
     
     return all_96, all_384, all_1536, all_df, successful_jobs, failed_jobs
-
 
 def get_results_old():
     successful_jobs = []

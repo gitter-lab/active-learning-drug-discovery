@@ -61,6 +61,7 @@ if __name__ ==  '__main__':
         next_batch_selector_params = json.load(f)
     
     # setup initial training plate
+    pathlib.Path(pipeline_config['training_data_params']['data_path_format']).parent.mkdir(parents=True, exist_ok=True)
     [os.remove(f) for f in glob.glob(pipeline_config['training_data_params']['data_path_format'].format('*'))]
     shutil.copyfile(initial_dataset_file, pipeline_config['training_data_params']['data_path_format'].format(0))
     print('Set {} as starting initial set.'.format(initial_dataset_file))
@@ -115,7 +116,7 @@ if __name__ ==  '__main__':
                                      output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
     
     # run iterations for this simulation
-    for iter_num in range(start_iter, iter_max):
+    for iter_num in range(start_iter, min(start_iter+5, iter_max)):
         iter_start_time = time.time()
         print('---------------------------------------------------------------')
         print('Processing iteration number: {}...'.format(iter_num))

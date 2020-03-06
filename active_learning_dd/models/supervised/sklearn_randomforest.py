@@ -62,7 +62,15 @@ class SklearnRF(SupervisedModel):
     def predict(self, X):
         y_pred = np.zeros(shape=(X.shape[0],len(self.task_names)))
         for ti, task_name in enumerate(self.task_names):
-            y_pred[:,ti] = self.model_dict[task_name].predict_proba(X)[:,1]
+            task_preds = self.model_dict[task_name].predict_proba(X)
+            # check if model only seen 1 class; i.e. if all samples are 0
+            task_classes = self.model_dict[task_name].classes_
+            if task_classes.shape[0] == 1:
+                y_pred[:,ti] = task_preds[:,0]
+                if task_classes[0] == 0: # flip if only seen class is 0; same as setting prob of class 1 as 0.0
+                    y_pred[:,ti] = 1.0 - y_pred[:,ti]
+            else:
+                y_pred[:,ti] = task_preds[:,1]
         return y_pred
         
     """

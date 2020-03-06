@@ -61,7 +61,7 @@ class CSVLoader(object):
     # remove already labeled molecules by checking other and unlabeled pool overlap
     # note duplicates determined via rdkit smiles
     def drop_duplicates_via_smiles(self, smiles_others):
-        csv_files_list = [self.csv_file_or_dir.format(i) for i in range(self.num_files)]
+        csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list, sort=False)
         data_df = data_df.reset_index(drop=True)
@@ -70,7 +70,7 @@ class CSVLoader(object):
         self.idx_to_drop = idx_to_drop
 		
     def _load_dataframe(self):
-        csv_files_list = [self.csv_file_or_dir.format(i) for i in range(self.num_files)]
+        csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list, sort=False)
         data_df = data_df.reset_index(drop=True)

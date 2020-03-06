@@ -105,12 +105,19 @@ params_results/*
 analysis_notebooks/*
 *.csv
 *.zip
-analysis_notebooks/IS-Cycles.ipynb
-analysis_notebooks/NN-Semisupervised.ipynb
-analysis_notebooks/w.npy
 *.dat
 active_learning_dd/utils/tmp/*
-analysis_notebooks/Thesis Visuals.ipynb
 *.dag
 *.txt
 *.gz
+analysis_notebooks/stratify_helper.py
+analysis_notebooks/Stratify PCBA.ipynb
+analysis_notebooks/Experiment 1 Results - Benchmarks.ipynb
+analysis_notebooks/Debugging.ipynb
+analysis_notebooks/Check Node Usage.ipynb
+analysis_notebooks/Check Failed Jobs.ipynb
+analysis_notebooks/Analyze HS Results_old.ipynb
+analysis_notebooks/Analyze HS Results.ipynb
+analysis_notebooks/Analyze HS Results-Copy1.ipynb
+analysis_notebooks/Analyze Exp 1 Results.ipynb
+analysis_notebooks/analysis_helper.py

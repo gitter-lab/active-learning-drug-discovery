@@ -26,7 +26,8 @@ def load_next_batch_selector(training_loader,
 def nbs_func_dict():
     return {"ClusterBasedWCSelector": prepare_ClusterBasedWCSelector,
             "InstanceBasedWCSelector": prepare_InstanceBasedWCSelector,
-            "MABSelector": prepare_MABSelector}
+            "MABSelector": prepare_MABSelector,
+            "MABUncertaintySelector": prepare_MABUncertaintySelector}
 
     
 def prepare_ClusterBasedWCSelector(training_loader,
@@ -99,3 +100,15 @@ def prepare_MABSelector(training_loader,
                                uncertainty_method=next_batch_selector_params["uncertainty_method"],
                                uncertainty_alpha=next_batch_selector_params["uncertainty_alpha"])
     return MAB_selector
+    
+def prepare_MABUncertaintySelector(training_loader,
+                                   unlabeled_loader,
+                                   trained_model,
+                                   next_batch_selector_params,
+                                   dissimilarity_memmap_filename):
+    MABUncertainty_selector = MABSelector(training_loader=training_loader,
+                                          unlabeled_loader=unlabeled_loader,
+                                          trained_model=trained_model,
+                                          batch_size=next_batch_selector_params["batch_size"],
+                                          uncertainty_method=next_batch_selector_params["uncertainty_method"])
+    return MABUncertainty_selector
