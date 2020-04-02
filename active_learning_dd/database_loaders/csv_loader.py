@@ -103,6 +103,7 @@ class CSVLoader(object):
                 data_df = data_df.drop(data_df.index.values[self.idx_to_drop])
         # if you are caching, then just pass self.data_df if it is NOT None, 
         # otherwise set it to the loaded dataframe (since the above if should fire).
+        if self.cache_dataframes:
             if self.data_df is None:
                 self.data_df = data_df # pass by reference
             else:
