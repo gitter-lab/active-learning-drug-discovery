@@ -43,15 +43,23 @@ class ClusterBasedSelector(NBSBase):
         self.use_consensus_distance = use_consensus_distance
     
     def _get_avg_cluster_dissimilarity(self, selected_cluster_ids, candidate_cluster_ids):
-        features_train_unlabeled = np.vstack([self.training_loader.get_features(), 
-                                              self.unlabeled_loader.get_features()])
         clusters_train_unlabeled = np.hstack([self.clusters_train, self.clusters_unlabeled])
         
         if self.dissimilarity_memmap_filename is None:
+            train_size = self.training_loader.get_size()[0]
             cid_instances = np.in1d(clusters_train_unlabeled, np.hstack([selected_cluster_ids, candidate_cluster_ids]))
-            features_train_unlabeled = features_train_unlabeled[cid_instances]
             clusters_train_unlabeled = clusters_train_unlabeled[cid_instances]
-                
+            
+            # read features
+            cid_instances_train = cid_instances[:train_size]
+            cid_instances_unlabeled = cid_instances[train_size:]
+            
+            # slice out targeted cluster instances only
+            features_train = self.training_loader.get_features(cid_instances_train)
+            features_unlabeled = self.unlabeled_loader.get_features(cid_instances_unlabeled)
+            features_train_unlabeled = np.vstack([features_train, features_unlabeled])
+            del features_train, features_unlabeled, cid_instances
+            
             if self.use_consensus_distance:
                 consensus_features = np.zeros(shape=(len(selected_cluster_ids)+len(candidate_cluster_ids), 
                                                      features_train_unlabeled.shape[1]))

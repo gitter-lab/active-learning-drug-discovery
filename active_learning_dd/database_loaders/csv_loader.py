@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import os
 import glob
+from scipy import sparse
 
 from ..utils.data_utils import get_duplicate_smiles_in1d
 
@@ -21,6 +22,8 @@ class CSVLoader(object):
         smile_col_name: specifies the smiles column name.
         feature_name: specifies the feature name. Assumes some form of fingerprint features for now.
         cluster_col_name: specifies the cluster column name designating the cluster ids of each molecule.
+        idx_id_col_name: specifies the unique index ID for the compounds.
+        cache_dataframes: if True, will maintain dataframes in memory. If False, will load it each time it is needed.
     """
     def __init__(self, 
                  csv_file_or_dir,
@@ -30,7 +33,9 @@ class CSVLoader(object):
                  cluster_col_name='Murcko Scaffold ID',
                  molecule_id_col_name='Molecule',
                  cost_col_name='Cost',
-                 idx_id_col_name='Index ID'):
+                 idx_id_col_name='Index ID',
+                 cache_dataframes=True,
+                 convert_features_to_sparse_format=False):
         self.csv_file_or_dir = csv_file_or_dir
         self.task_names = task_names
         self.smile_col_name = smile_col_name
@@ -39,6 +44,12 @@ class CSVLoader(object):
         self.molecule_id_col_name = molecule_id_col_name
         self.cost_col_name = cost_col_name
         self.idx_id_col_name = idx_id_col_name
+        self.cache_dataframes = cache_dataframes
+        self.convert_features_to_sparse_format = convert_features_to_sparse_format
+        
+        if self.cache_dataframes:
+            self.data_df = None
+            self.X_features = None
         
         self.num_files = len(glob.glob(self.csv_file_or_dir.format('*')))
         
@@ -58,39 +69,76 @@ class CSVLoader(object):
         if self._idx_to_drop is not None and not isinstance(self._idx_to_drop, list):
             self._idx_to_drop = [self._idx_to_drop]
     
-    # remove already labeled molecules by checking other and unlabeled pool overlap
-    # note duplicates determined via rdkit smiles
-    def drop_duplicates_via_smiles(self, smiles_others):
-        csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
-        df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
-        data_df = pd.concat(df_list, sort=False)
-        data_df = data_df.reset_index(drop=True)
-        smiles_this = data_df[self.smile_col_name].values
-        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_this)
-        self.idx_to_drop = idx_to_drop
-		
     def _load_dataframe(self):
         csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list, sort=False)
+        
+        # remove duplicates via index id 
+        if self.idx_id_col_name in data_df.columns:
+            data_df = data_df.drop_duplicates(self.idx_id_col_name, keep="first")
+        
         data_df = data_df.reset_index(drop=True)
-        if self.idx_to_drop is not None:
-            data_df = data_df.drop(data_df.index.values[self.idx_to_drop])
+        return data_df
+        
+    # remove already labeled molecules by checking other and unlabeled pool overlap
+    # note duplicates determined via rdkit smiles
+    def drop_duplicates_via_smiles(self, smiles_others):
+        data_df = self._load_dataframe()
+        smiles_this = data_df[self.smile_col_name].values
+        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_this)
+        self.idx_to_drop = idx_to_drop
+        
+        # update cache after updating idx_to_drop
+        if self.cache_dataframes:
+            self.data_df = data_df
+            if self.idx_to_drop is not None:
+                self.data_df = self.data_df.drop(self.data_df.index.values[self.idx_to_drop])
+        
+    def get_dataframe(self):
+        # if you are not caching or self.data_df is None, then load the dataframe from disk
+        if (not self.cache_dataframes) or (self.data_df is None):
+            data_df = self._load_dataframe()
+            if self.idx_to_drop is not None:
+                data_df = data_df.drop(data_df.index.values[self.idx_to_drop])
+        # if you are caching, then just pass self.data_df if it is NOT None, 
+        # otherwise set it to the loaded dataframe (since the above if should fire).
+            if self.data_df is None:
+                self.data_df = data_df # pass by reference
+            else:
+                data_df = self.data_df # pass by reference
         return data_df
     
     def get_size(self):
-        data_df = self._load_dataframe()
-        return data_df.shape
-        
-    def get_dataframe(self):
-        data_df = self._load_dataframe()
-        return data_df
-        
-    def get_features(self):
         data_df = self.get_dataframe()
-        X_data = data_df[self.feature_name].values
-        X_data = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in X_data]).astype(float) # this is from: https://stackoverflow.com/a/29091970
-        return X_data
+        return data_df.shape
+    
+    """
+        Returns feature matrix for the desired rows.
+        If desired rows is None, returns all rows; entire feature matrix.
+    """
+    def get_features(self, desired_rows=None):
+        data_df = self.get_dataframe()
+                
+        if self.cache_dataframes:
+            if self.X_features is None:
+                X_features = data_df[self.feature_name].values
+                X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
+                self.X_features = X_features
+            else:
+                X_features = self.X_features
+        else:
+            X_features = data_df[self.feature_name].values
+            X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
+            
+        if desired_rows is not None:
+            X_features = X_features[desired_rows]
+        
+        if self.convert_features_to_sparse_format:
+            X_features = sparse.coo_matrix(X_features)
+            X_features = X_features.tocsc()
+            
+        return X_features
 
     def get_labels(self):
         data_df = self.get_dataframe()

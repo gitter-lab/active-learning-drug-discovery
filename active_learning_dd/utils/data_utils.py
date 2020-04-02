@@ -53,9 +53,12 @@ def feature_dist_func_dict():
 """
     Returns indices of duplicated smiles from x_smiles in y_smiles. 
 """
-def get_duplicate_smiles_in1d(x_smiles, y_smiles):
-    x_canon_smiles = np.array([Chem.MolToSmiles(Chem.MolFromSmiles(x)) for x in x_smiles])
-    y_canon_smiles = np.array([Chem.MolToSmiles(Chem.MolFromSmiles(y)) for y in y_smiles])
+def get_duplicate_smiles_in1d(x_smiles, y_smiles, smiles_are_canonical=True):
+    x_canon_smiles = x_smiles
+    y_canon_smiles = y_smiles
+    if not smiles_are_canonical:
+        x_canon_smiles = np.array([Chem.MolToSmiles(Chem.MolFromSmiles(x)) for x in x_smiles])
+        y_canon_smiles = np.array([Chem.MolToSmiles(Chem.MolFromSmiles(y)) for y in y_smiles])
     
     y_duplicates = np.in1d(y_canon_smiles, x_canon_smiles)
     idx_to_drop = list(np.arange(len(y_canon_smiles))[y_duplicates])
@@ -73,8 +76,8 @@ def get_avg_cluster_dissimilarity(clusters,
                                   candidate_cluster_ids,
                                   feature_dist_func=tanimoto_dissimilarity,
                                   candidate_cluster_batch_size=2056):
-    clusters_ordered_ids = candidate_cluster_ids[:]
-    clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
+    clusters_ordered_ids = candidate_cluster_ids #[:] no need to make a copy
+    #clusters_avg_dissimilarity = np.zeros(shape=(len(candidate_cluster_ids),))
     
     selected_cid_instances = np.in1d(clusters, selected_cluster_ids)
     cluster_dist_means_list = []

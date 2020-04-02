@@ -41,6 +41,7 @@ if __name__ ==  '__main__':
     parser.add_argument('--hyperparams_json_file', action="store", dest="hyperparams_json_file", required=True)
     parser.add_argument('--initial_dataset_file', action="store", dest="initial_dataset_file", required=True)
     parser.add_argument('--task_name', action="store", dest="task_name", required=True)
+    parser.add_argument('--iter_pulse', type=int, default=5, action="store", dest="iter_pulse", required=False)
     parser.add_argument('--iter_max', type=int, default=10, action="store", dest="iter_max", required=False)
     parser.add_argument('--batch_size_index', type=int, default=0, action="store", dest="batch_size_index", required=False)
     parser.add_argument('--precompute_dissimilarity_matrix', dest='precompute_dissimilarity_matrix', action='store_true')
@@ -51,6 +52,7 @@ if __name__ ==  '__main__':
     hyperparams_json_file = given_args.hyperparams_json_file
     initial_dataset_file = given_args.initial_dataset_file
     task_name = given_args.task_name
+    iter_pulse = given_args.iter_pulse
     iter_max = given_args.iter_max
     batch_size_index = given_args.batch_size_index
     precompute_dissimilarity_matrix = given_args.precompute_dissimilarity_matrix
@@ -122,8 +124,8 @@ if __name__ ==  '__main__':
         compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
                                      output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
     
-    # run iterations for this simulation. running in 5 iter pulses for checkpointing.
-    for iter_num in range(start_iter, min(start_iter+5, iter_max)):
+    # run iterations for this simulation. running in n iter pulses for checkpointing.
+    for iter_num in range(start_iter, min(start_iter+iter_pulse, iter_max)):
         iter_start_time = time.time()
         print('---------------------------------------------------------------')
         print('Processing iteration number: {}...'.format(iter_num))

@@ -110,6 +110,7 @@ active_learning_dd/utils/tmp/*
 *.dag
 *.txt
 *.gz
+analysis_notebooks_local/*
 analysis_notebooks/stratify_helper.py
 analysis_notebooks/Stratify PCBA.ipynb
 analysis_notebooks/Experiment 1 Results - Benchmarks.ipynb
