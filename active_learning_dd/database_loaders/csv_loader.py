@@ -47,9 +47,8 @@ class CSVLoader(object):
         self.cache_dataframes = cache_dataframes
         self.convert_features_to_sparse_format = convert_features_to_sparse_format
         
-        if self.cache_dataframes:
-            self.data_df = None
-            self.X_features = None
+        self.data_df = None
+        self.X_features = None
         
         self.num_files = len(glob.glob(self.csv_file_or_dir.format('*')))
         
@@ -71,6 +70,7 @@ class CSVLoader(object):
     
     def _load_dataframe(self):
         csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
+        csv_files_list = np.sort(csv_files_list)
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
         data_df = pd.concat(df_list, sort=False)
         
