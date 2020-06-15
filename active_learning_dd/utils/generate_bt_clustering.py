@@ -187,14 +187,15 @@ def cluster_singletons_wrapper(start_ind, end_ind,
                                 closest_neighbor_dist = cluster_leader_dist
                 else:
                     dm_slice = dissimilarity_matrix[row, col_start:col_end]
-                    min_idx_slice = np.argmin(dm_slice)
-                    min_dist = dm_slice[min_idx_slice]
-                    if min_dist <= cutoff:
-                        leader_idx = cluster_leader_idx_vector[col_start + min_idx_slice]
-                        cluster_leader_dist = dissimilarity_matrix[row, leader_idx]
-                        if cluster_leader_dist < closest_neighbor_dist:
-                            closest_neighbor_idx = leader_idx
-                            closest_neighbor_dist = cluster_leader_dist
+                    if dm_slice.shape[0] > 0:
+                        min_idx_slice = np.argmin(dm_slice)
+                        min_dist = dm_slice[min_idx_slice]
+                        if min_dist <= cutoff:
+                            leader_idx = cluster_leader_idx_vector[col_start + min_idx_slice]
+                            cluster_leader_dist = dissimilarity_matrix[row, leader_idx]
+                            if cluster_leader_dist < closest_neighbor_dist:
+                                closest_neighbor_idx = leader_idx
+                                closest_neighbor_dist = cluster_leader_dist
             
             # NOTE to self: check if true singletons truly have no cpd within cutoff.
             if closest_neighbor_idx == row: # true singleton case -> assign to unique cluster
@@ -457,5 +458,5 @@ if __name__ ==  '__main__':
                      dissimilarity_memmap_filename=dissimilarity_memmap_filename)
     
     # clean up tmp directory 
-    import shutil
-    shutil.rmtree(tmp_dir)
+    #import shutil
+    #shutil.rmtree(tmp_dir)

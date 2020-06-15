@@ -20,6 +20,7 @@ class SupervisedModel(object):
     """
     def __init__(self, task_names):
         self.task_names = task_names
+        self.check_fit = False # check if model has been fit
     
     @property
     def task_names(self):

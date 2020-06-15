@@ -57,7 +57,10 @@ class ClusterBasedSelector(NBSBase):
             # slice out targeted cluster instances only
             features_train = self.training_loader.get_features(cid_instances_train)
             features_unlabeled = self.unlabeled_loader.get_features(cid_instances_unlabeled)
-            features_train_unlabeled = np.vstack([features_train, features_unlabeled])
+            if features_train.shape[0] > 0:
+                features_train_unlabeled = np.vstack([features_train, features_unlabeled])
+            else: # case for empty training set
+                features_train_unlabeled = features_unlabeled
             del features_train, features_unlabeled, cid_instances
             
             if self.use_consensus_distance:

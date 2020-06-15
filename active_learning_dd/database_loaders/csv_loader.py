@@ -72,28 +72,41 @@ class CSVLoader(object):
         csv_files_list = glob.glob(self.csv_file_or_dir.format('*')) #[self.csv_file_or_dir.format(i) for i in range(self.num_files)]
         csv_files_list = np.sort(csv_files_list)
         df_list = [pd.read_csv(csv_file) for csv_file in csv_files_list]
-        data_df = pd.concat(df_list, sort=False)
         
-        # remove duplicates via index id 
-        if self.idx_id_col_name in data_df.columns:
-            data_df = data_df.drop_duplicates(self.idx_id_col_name, keep="first")
+        # If file list is empty create empty dataframe. Case when initial/starting plate is empty or None. 
+        if len(df_list) == 0:
+            columns = [self.idx_id_col_name,
+                       self.smile_col_name,
+                       self.feature_name,
+                       self.cluster_col_name,
+                       self.molecule_id_col_name,
+                       self.cost_col_name]
+            columns += self.task_names
+            data_df = pd.DataFrame(columns=columns)
+        else:
+            data_df = pd.concat(df_list, sort=False)
         
-        data_df = data_df.reset_index(drop=True)
+            # remove duplicates via index id 
+            if self.idx_id_col_name in data_df.columns:
+                data_df = data_df.drop_duplicates(self.idx_id_col_name, keep="first")
+            
+            data_df = data_df.reset_index(drop=True)
         return data_df
         
     # remove already labeled molecules by checking other and unlabeled pool overlap
     # note duplicates determined via rdkit smiles
     def drop_duplicates_via_smiles(self, smiles_others):
-        data_df = self._load_dataframe()
-        smiles_this = data_df[self.smile_col_name].values
-        idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_this)
-        self.idx_to_drop = idx_to_drop
-        
-        # update cache after updating idx_to_drop
-        if self.cache_dataframes:
-            self.data_df = data_df
-            if self.idx_to_drop is not None:
-                self.data_df = self.data_df.drop(self.data_df.index.values[self.idx_to_drop])
+        if smiles_others.shape[0] > 0:
+            data_df = self._load_dataframe()
+            smiles_this = data_df[self.smile_col_name].values
+            idx_to_drop = get_duplicate_smiles_in1d(smiles_others, smiles_this)
+            self.idx_to_drop = idx_to_drop
+            
+            # update cache after updating idx_to_drop
+            if self.cache_dataframes:
+                self.data_df = data_df
+                if self.idx_to_drop is not None:
+                    self.data_df = self.data_df.drop(self.data_df.index.values[self.idx_to_drop])
         
     def get_dataframe(self):
         # if you are not caching or self.data_df is None, then load the dataframe from disk
@@ -124,13 +137,15 @@ class CSVLoader(object):
         if self.cache_dataframes:
             if self.X_features is None:
                 X_features = data_df[self.feature_name].values
-                X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
+                if X_features.shape[0] > 0:
+                    X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
                 self.X_features = X_features
             else:
                 X_features = self.X_features
         else:
             X_features = data_df[self.feature_name].values
-            X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
+            if X_features.shape[0] > 0:
+                X_features = np.vstack([ (np.fromstring(x, 'u1') - ord('0')).astype(np.uint16) for x in X_features ]) # this is from: https://stackoverflow.com/a/29091970
             
         if desired_rows is not None:
             X_features = X_features[desired_rows]
