@@ -16,7 +16,7 @@
   
   "training_data_params": {
     "data_loader_class": "CSVLoader",
-    "data_path_format": "../datasets/training_data/iter_{}.csv",
+    "data_path_format": "../../pstp/results/setting_{}/training_data/cumulative_{}.csv.gz",
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
@@ -28,7 +28,7 @@
     
   "unlabeled_data_params": {
     "data_loader_class": "CSVLoader",
-    "data_path_format": "../datasets/PstP/pstp_all.csv.gz",
+    "data_path_format": "../datasets/pstp/pstp_all.csv.gz",
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
@@ -39,15 +39,11 @@
   },
     
   "common": {
-    "params_set_results_dir": "../params_results/PstP/{}/{}/{}/",
-    "params_set_config_csv": "config.csv",
-    "batch_size_results_dir": "/batch_size_{}/",
-    "iter_results_dir": "/iter_{}/",
-    "eval_dest_file": "/eval.csv",
-    "batch_csv": "/{}.csv",
-	"summary_dest_file": "summary.csv",
+    "next_batch_csv": "../../pstp/results/setting_{}/next_batch/iter_{}.csv.gz",
     
-    "task_names": "PstP Activity",
+    "task_names": "PstP {} Active",
+    
+    "batch_size": 80,
     
     "cherry_picking_time_per_cpd": 100.0,
     "screening_time_per_batch": 3600.0,
