@@ -1,0 +1,60 @@
+{
+  "model": {
+    "type": "supervised",
+    "class": "sklearn_randomforest",
+    "params" : {
+        "n_estimators": 50,
+        "max_features": "log2",
+        "min_samples_leaf": 1,
+        "n_jobs": 1,
+        "class_weight": "balanced",
+        "random_state": 20183112,
+        "oob_score": false,
+        "verbose": 0
+    }
+  },
+  
+  "training_data_params": {
+    "data_loader_class": "CSVLoader",
+    "data_path_format": "../datasets/training_data/iter_{}.csv",
+    
+    "smile_col_name": "rdkit SMILES",
+    "feature_name": "Morgan FP_2_1024",
+    "cluster_col_name": "Cluster_0.4",
+    "molecule_id_col_name": "Molecule",
+    "cost_col_name": "Cost",
+    "idx_id_col_name": "Index ID"
+  },
+    
+  "unlabeled_data_params": {
+    "data_loader_class": "CSVLoader",
+    "data_path_format": "../datasets/lc_clusters_cv_96/unlabeled_{}.csv",
+    
+    "smile_col_name": "rdkit SMILES",
+    "feature_name": "Morgan FP_2_1024",
+    "cluster_col_name": "Cluster_0.4",
+    "molecule_id_col_name": "Molecule",
+    "cost_col_name": "Cost",
+    "idx_id_col_name": "Index ID"
+  },
+    
+  "common": {
+    "params_set_results_dir": "../params_results/{}/{}/{}_{}/",
+    "params_set_config_csv": "config.csv",
+    "batch_size_results_dir": "/batch_size_{}/",
+    "iter_results_dir": "/iter_{}/",
+    "eval_dest_file": "/eval.csv",
+    "batch_csv": "/{}.csv",
+	"summary_dest_file": "summary.csv",
+    
+    "task_names": "PriA-SSB Activity",
+    
+    "cherry_picking_time_per_cpd": 100.0,
+    "screening_time_per_batch": 3600.0,
+	
+    "metrics_params": {
+      "w_novelty": 0.5,
+      "perc_vec": [0.01, 0.02, 0.05, 0.1, 0.2]
+    }
+  }
+}

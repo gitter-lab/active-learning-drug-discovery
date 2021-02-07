@@ -43,6 +43,7 @@ class SupervisedModel(object):
     """
     def get_uncertainty_lc(self, X):
         preds = self.predict(X)
+        #preds = (preds - np.min(preds)) / (np.max(preds) - np.min(preds)) # normalize in range 0-1.
         uncertainty = 1 - (np.abs(2*preds - 1))
         return uncertainty
     

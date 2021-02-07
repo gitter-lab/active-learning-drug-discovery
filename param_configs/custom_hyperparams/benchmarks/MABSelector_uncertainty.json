@@ -1,0 +1,11 @@
+{
+    "class": "MABUncertaintySelector",
+  
+    "batch_size": [96, 384, 1536],
+    
+    "uncertainty_method": "least_confidence",
+        
+    "rnd_seed": 75119883, 
+    "hyperparameter_id": "MABSelector_uncertainty", 
+    "hyperparameter_group": "benchmarks"
+}
