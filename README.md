@@ -20,7 +20,7 @@ git clone https://github.com/gitter-lab/active-learning-drug-discovery.git
 cd active-learning-drug-discovery
 ```
 
-The CISP informer set method uses the `aldd` conda environment using the `conda_env.yml` file:
+Setup the `aldd` conda environment using the `conda_env.yml` file:
 ```
 conda env create -f conda_env.yml
 source activate aldd
@@ -62,16 +62,16 @@ Consult the README in that subdirectory for details.
 
 The following are the currently implemented strategies in `active_learning_dd/next_batch_selector/` (see [thesis document]() and hyperapameter examples in `param_configs/`):
 
-1. ClusterBasedWeightSelector (CBWS): assigns exploitation-exploration weights to every cluster, splits the budget between exploit-explore, then select compounds from most exploitable clusters, followed by selecting most explorable clusters. 
+1. **ClusterBasedWeightSelector (CBWS)**: assigns exploitation-exploration weights to every cluster, splits the budget between exploit-explore, then select compounds from most exploitable clusters, followed by selecting most explorable clusters. 
 
-2. ClusterBasedRandom: randomly samples a cluster, then randomly samples compounds from within clusters. 
+2. **ClusterBasedRandom**: randomly samples a cluster, then randomly samples compounds from within clusters. 
 
-3. InstanceBasedRandom: randomly samples compounds from the pool. 
+3. **InstanceBasedRandom**: randomly samples compounds from the pool. 
 
-4. ClusterBasedDissimilar: samples clusters dissimilarly according to a dissimilarity measure which is by default fingerprint based. 
+4. **ClusterBasedDissimilar**: samples clusters dissimilarly according to a dissimilarity measure which is by default fingerprint based. 
 
-5. InstanceBasedDissimilar: samples compounds dissimilarly from the pool. 
+5. **InstanceBasedDissimilar**: samples compounds dissimilarly from the pool. 
 
-6. MABSelector: Upper-Confidence-Bound (UCB) style solution from Multi-Armed Bandits (MAB). 
+6. **MABSelector**: Upper-Confidence-Bound (UCB) style solution from Multi-Armed Bandits (MAB). 
 Assigns every cluster an upper-bound estimate of the reward that is a combination of a exploitation term and an exploration term. 
 Samples clusters with the highest rewards. 
