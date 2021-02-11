@@ -26,10 +26,26 @@ conda env create -f conda_env.yml
 source activate aldd
 ```
 
-Finally, install `active-learning-drug-discovery` with `pip`.
+Finally, install `active-learning-drug-discovery` with `pip`:
 ```
 pip install -e .
 ```
+
+Now check the installation is working correctly by running the sample data test:
+```
+cd chtc_runners
+python sample_data_runner.py \
+        --pipeline_params_json_file=../param_configs/sample_data_config.json \
+        --hyperparams_json_file=../param_configs/experiment_pstp_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
+        --iter_max=5 \ 
+        --no-precompute_dissimilarity_matrix \
+        --initial_dataset_file=../datasets/sample_data/training_data/iter_0.csv.gz
+ ```
+ 
+ You should see the following last prompt:
+ ```
+ Finished testing sample dataset. Verified that hashed selection matches stored hash.
+ ``` 
 
 ## datasets
 

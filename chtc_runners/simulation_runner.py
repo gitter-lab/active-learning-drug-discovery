@@ -1,5 +1,5 @@
 """
-    Runs an active learning simulation.
+    Runs an iterative screening simulation.
     
     Usage:
         python simulation_runner.py \

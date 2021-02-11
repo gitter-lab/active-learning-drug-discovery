@@ -1,3 +1,16 @@
+# Experiment Configs
+
+Files like `exp_0_pipeline_config.json` and `exp_3_pipeline_config.json` contain configurations for the experiments in the thesis. 
+These configs are used by the runner scripts in `chtch_runners/`. 
+As such, they are not required for using the `active_learning_dd/` codebase, but serve as utility/helper for the runner scripts. 
+
+---
+# Strategy Hyperparameter Configs
+
+The subdirectory `custom_hyperparams/benchmarks/` contains configuration examples for random, diversity, and MAB strategies. 
+These configs are parameter settings for the implemented strategies in `active_learning_dd/` and serve as utility/helpers in runner scripts. 
+
+---
 # ClusterBased-WeightedClusters-Selector (CBWCS) Parameters
 
 - **batch_size=[96, 384, 1536]**: the number of cpds to select each iteration. 
@@ -89,7 +102,7 @@ the cluster.
 Parameter space is in the 100-billions. We plan on running parameter sweeps to find good parameters. Here we specify a distribution (probabilities) over the values of the parameters. 
 This allows us to place preference over certain values based on our intuition. We can then run, say 100k, parameter jobs sampled from this preferred distribution.
 
-
+```
   "nbs_params_probas": {
   
     "exploitation_use_quantile_for_activity": [0.5, 0.5], 
@@ -118,3 +131,4 @@ This allows us to place preference over certain values based on our intuition. W
     "uncertainty_method": [0.25, 0.25, 0.25, 0.25] # not sure of best method
   }
 }
+```
