@@ -51,7 +51,8 @@ python sample_data_runner.py \
 
 The datasets used in this study are: PriA-SSB target, 107 PubChemBioAssay targets, and PstP target. 
 The specific datasets used in this study can be downloaded from: [doi:xx.xxxx/zenodo.xxxxxxx](). 
-The subdirectory also contains a small dataset for testing.
+
+The subdirectory also contains a small dataset for testing: `datasets/sample_data/`. 
 
 ## active_learning_dd
 
