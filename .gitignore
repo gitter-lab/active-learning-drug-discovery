@@ -110,3 +110,7 @@ active_learning_dd/utils/tmp/*
 *.txt
 *.gz
 analysis_notebooks_local/*
+
+!datasets/sample_data
+!datasets/sample_data/training_data/*.csv.gz
+!datasets/sample_data/unlabeled_data/*.csv.gz
