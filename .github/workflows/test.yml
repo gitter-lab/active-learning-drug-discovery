@@ -24,7 +24,7 @@ jobs:
           miniconda-version: 'latest'
       - name: Install active_learning_dd package
         shell: bash --login {0}
-        run: pip install .
+        run: pip install -e .
       - name: Test sample data runner
         shell: bash --login {0}
         run: |
