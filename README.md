@@ -14,21 +14,22 @@ Iterative Batched Screening.
 
 We recommend creating a [conda environment](https://conda.io/docs/user-guide/tasks/manage-environments.html) to manage the dependencies.
 Assumes [Anaconda installation](https://www.anaconda.com/download/). 
-Then, clone this repository:
+Clone this repository:
 ```
 git clone https://github.com/gitter-lab/active-learning-drug-discovery.git
 cd active-learning-drug-discovery
 ```
 
-Setup the `aldd` conda environment using the `conda_env.yml` file:
+Setup the `active_learning_dd` conda environment using the `conda_env.yml` file:
 ```
 conda env create -f conda_env.yml
-source activate aldd
+conda activate active_learning_dd
 ```
+If you do you want GPU support, you can replace `conda_env.yml` with `conda_cpu_env.yml.
 
-Finally, install `active-learning-drug-discovery` with `pip`:
+Finally, install `active_learning_dd` with `pip`:
 ```
-pip install -e .
+pip install .
 ```
 
 Now check the installation is working correctly by running the sample data test:
