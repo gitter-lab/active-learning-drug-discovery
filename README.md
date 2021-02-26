@@ -25,7 +25,7 @@ Setup the `active_learning_dd` conda environment using the `conda_env.yml` file:
 conda env create -f conda_env.yml
 conda activate active_learning_dd
 ```
-If you do you want GPU support, you can replace `conda_env.yml` with `conda_cpu_env.yml.
+If you do not want GPU support, you can replace `conda_env.yml` with `conda_cpu_env.yml.
 
 Finally, install `active_learning_dd` with `pip`:
 ```
