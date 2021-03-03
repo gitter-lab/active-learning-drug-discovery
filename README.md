@@ -1,6 +1,6 @@
 # Active Learning in Drug Discovery
 
-[![Build Status](https://travis-ci.com/gitter-lab/active-learning-drug-discovery.svg?token=DHS914p1QvszNqsQgFxW&branch=master)](https://travis-ci.com/gitter-lab/active-learning-drug-discovery)
+[![Test active learning in drug discovery](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml/badge.svg)](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml)gitter-lab/active-learning-drug-discovery)
 
 ## Citation
 
