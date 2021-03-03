@@ -9,9 +9,7 @@ dependencies:
 - rdkit=2018.03.4.0
 - pandas=0.23.4
 - matplotlib=2.2.3
-- cudatoolkit=9.2
-- cudnn=7.2.1
-- tensorflow-gpu=1.11.0
+- tensorflow=1.11.0
 - keras=2.2.4
 - scikit-learn=0.19.2
 - pubchempy=1.0.4
