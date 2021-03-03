@@ -29,7 +29,7 @@ If you do not want GPU support, you can replace `conda_env.yml` with `conda_cpu_
 
 Finally, install `active_learning_dd` with `pip`:
 ```
-pip install .
+pip install -e .
 ```
 
 Now check the installation is working correctly by running the sample data test:
@@ -38,7 +38,7 @@ cd chtc_runners
 python sample_data_runner.py \
         --pipeline_params_json_file=../param_configs/sample_data_config.json \
         --hyperparams_json_file=../param_configs/experiment_pstp_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
-        --iter_max=5 \ 
+        --iter_max=5 \
         --no-precompute_dissimilarity_matrix \
         --initial_dataset_file=../datasets/sample_data/training_data/iter_0.csv.gz
  ```
