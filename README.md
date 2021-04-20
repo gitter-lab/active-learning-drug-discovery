@@ -2,6 +2,7 @@
 
 [![Test active learning in drug discovery](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml/badge.svg)](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml)
 
+<!--
 ## Citation
 
 If you use this software please cite:
@@ -9,6 +10,7 @@ If you use this software please cite:
 Moayad Alnammi, Spencer S. Ericksen, Scott A. Wildman, Nathan Wlodarchak, Hunter Reis, Troy King, Song Guo, Gene E. Ananiev, Anthony Gitter.
 Iterative Batched Screening.
 2021. [doi:xx.xxxx/xxxxxx]()
+-->
 
 ## Installation
 
@@ -50,35 +52,36 @@ python sample_data_runner.py \
 
 ## datasets
 
-The datasets used in this study are: PriA-SSB target, 107 PubChemBioAssay targets, and PstP target. 
-The specific datasets used in this study can be downloaded from: [doi:xx.xxxx/zenodo.xxxxxxx](). 
+The datasets used in this study are: PriA-SSB target, 107 PubChem BioAssay targets, and PstP target. 
+<!--The specific datasets used in this study can be downloaded from: [doi:xx.xxxx/zenodo.xxxxxxx](). -->
+The datasets will be uploaded to Zenodo in the near future.
 
-The subdirectory also contains a small dataset for testing: `datasets/sample_data/`. 
+The repository also contains a small dataset for testing: `datasets/sample_data/`. 
 
 ## active_learning_dd
 
-The active_learning_dd subdirectory contains the main codebase for the iterative batched screening components. 
+The `active_learning_dd` subdirectory contains the main codebase for the iterative batched screening components. 
 Consult the README in that subdirectory for details. 
 
 ## param_configs
 
-This subdirectory contains json config files for strategies and experiments used in the [thesis document]().
+This subdirectory contains json config files for strategies and experiments used in the [thesis document](https://www.biostat.wisc.edu/~gitter/pubs/AlnammiThesis.pdf).
 Consult the README in that subdirectory for details. 
 
 ## analysis_notebooks
 
-This subdirectory contains jupyter notebooks that preprocess the datasets, debug methods, analyze the results, and produce result images.
+This subdirectory contains Jupyter notebooks that preprocess the datasets, debug methods, analyze the results, and produce result images.
 
 ## runner scripts
 
-`chtc_runners/` contains runner scripts for the experiments in the [thesis document]().
+`chtc_runners/` contains runner scripts for the experiments in the [thesis document](https://www.biostat.wisc.edu/~gitter/pubs/AlnammiThesis.pdf).
 `chtc_runners/simulation_runner.py` can be used as a starting template for your own runner script. 
 `chtc_runners/simulation_utils.py` contains helper functions for pre- and post-processing iteration selections for retrospective experiments. 
 Consult the README in that subdirectory for details. 
 
 ## Implemented Iterative Strategies
 
-The following are the currently implemented strategies in `active_learning_dd/next_batch_selector/` (see [thesis document]() and hyperapameter examples in `param_configs/`):
+The following are the currently implemented strategies in `active_learning_dd/next_batch_selector/` (see [thesis document](https://www.biostat.wisc.edu/~gitter/pubs/AlnammiThesis.pdf) and hyperapameter examples in `param_configs/`):
 
 1. **ClusterBasedWeightSelector (CBWS)**: assigns exploitation-exploration weights to every cluster, splits the budget between exploit-explore, then select compounds from most exploitable clusters, followed by selecting most explorable clusters. 
 

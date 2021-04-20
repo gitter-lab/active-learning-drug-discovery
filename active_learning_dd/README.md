@@ -5,7 +5,7 @@ In particular, the function:
 
 ```
 get_next_batch(training_loader_params, 
-\              unlabeled_loader_params,
+               unlabeled_loader_params,
                model_params,
                task_names,
                next_batch_selector_params,
@@ -13,7 +13,7 @@ get_next_batch(training_loader_params,
 ```
 
 is called with dictionary configurations of the training dataset loader, unlabeled dataset loader, machine learning model parameters, learning task name in the dataset, and the paremeters for the next batch selector (i.e. the strategy). 
-It creates the corresponding python objects with the arguments given in the dictionaries. 
+It creates the corresponding Python objects with the arguments given in the dictionaries. 
 
 You can see this function in action in the runner scripts at `chtc_runners/` which make use of the configurations at `params_configs/`. 
 So, this is just a helper function, and thus one can opt to write an iteration script that hard-codes the parameters and arguments.  
@@ -29,7 +29,7 @@ Currently, only `CSVLoader` has been implemented and tested.
 ## utils
 
 Contains utility/helper functions for evaluation, metrics, Taylor-Butina cluster computation, and dissimilarity calculation. 
-These are words by various strategies. 
+These are used by various strategies. 
 
 ---
 ## models
@@ -50,7 +50,7 @@ The file `instance_based_selector.py` contains the `InstanceBasedWCSelector` cla
 
 The file `mab_selector.py` contains the `MABSelector` class which implements a Upper-confidence-bound (UCB) style MAB solution; estimates reward as trade-off between exploit and explore term. 
 
-See the [thesis document]() for details and descriptions on these strategies. 
+See the [thesis document](https://www.biostat.wisc.edu/~gitter/pubs/AlnammiThesis.pdf) for details and descriptions on these strategies. 
 
 ---
 # Summary of how it works
