@@ -100,3 +100,6 @@ if __name__ ==  '__main__':
     
     ors_end_time = time.time()
     print('Finished processing one round screen. Took {} seconds.'.format(ors_end_time-ors_start_time))
+    
+    
+    print('train: {}, {} ...... test:{}, {}'.format(y_train.shape[0], y_train.sum(), selected_df.shape[0], selected_df['PstP True Active'].sum()))

@@ -16,7 +16,7 @@
       
   "data_params": {
     "data_loader_class": "CSVLoader",
-    "data_path_format": "../datasets/pstp/pstp_all.csv.gz",
+    "data_path_format": "../datasets/pstp_final_true_with_pains.csv.gz",
     
     "smile_col_name": "rdkit SMILES",
     "feature_name": "Morgan FP_2_1024",
