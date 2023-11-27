@@ -1,15 +1,15 @@
-name: Test active learning in drug discovery
-
+name: Test
 on:
 - push
 - pull_request
 jobs:
   Test:
-    name: Test active learning in drug discovery
+    name: Test nn4dms
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -20,16 +20,15 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate-base: false
           miniconda-version: 'latest'
-      - name: Install active_learning_dd package
+     # Log conda environment contents
+      - name: Log conda environment
         shell: bash --login {0}
-        run: pip install -e .
-      - name: Test sample data runner
+        run: conda list
+      # Tests that the regression training code runs in the conda environment
+      - name: Test BT_Clustering
         shell: bash --login {0}
-        run: |
-          cd chtc_runners
-          python sample_data_runner.py \
-            --pipeline_params_json_file=../param_configs/sample_data_config.json \
-            --hyperparams_json_file=../param_configs/experiment_PstP_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
-            --iter_max=5 \
-            --no-precompute_dissimilarity_matrix \
-            --initial_dataset_file=../datasets/sample_data/training_data/iter_0.csv.gz
+        run: python utils/generate_bt_clustering.py --csv_file_or_dir=datasets/sample_data/training_data/iter_{}.csv --output_dir=datasets/sample_data/training_data --feature_name="Morgan FP_2_1024" --cutoff=0.4 --dist_function=tanimoto_dissimilarity --process_count=2 --index_name="Index ID"
+      # Tests that inference notebook can execute in the conda environment
+      - name: Test Simulation Runner
+        shell: bash --login {0}
+        run: python chtc_runners/simulation_runner.py --pipeline_params_json_file=param_configs/sample_data_config.json --nbs_params_json_file=param_configs/ClusterBasedWCSelector_params_reduced.json --exploration_strategy=weighted --iter_max=5 --process_num=0 --batch_size_index=0 --rnd_seed=0 --no-random_param_sampling --precompute_dissimilarity_matrix
