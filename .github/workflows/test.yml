@@ -24,6 +24,10 @@ jobs:
       - name: Log conda environment
         shell: bash --login {0}
         run: conda list
+     # Activate the installed packages
+      - name: Install active_learning_dd package
+        shell: bash --login {0}
+        run: pip install -e .
       # Tests that the regression training code runs in the conda environment
       - name: Test BT_Clustering
         shell: bash --login {0}
