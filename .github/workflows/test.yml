@@ -31,7 +31,7 @@ jobs:
       # Tests that the regression training code runs in the conda environment
       - name: Test BT_Clustering
         shell: bash --login {0}
-        run: python utils/generate_bt_clustering.py --csv_file_or_dir=datasets/sample_data/training_data/iter_{}.csv --output_dir=datasets/sample_data/training_data --feature_name="Morgan FP_2_1024" --cutoff=0.4 --dist_function=tanimoto_dissimilarity --process_count=2 --index_name="Index ID"
+        run: python active_learning_dd/utils/generate_bt_clustering.py --csv_file_or_dir=datasets/sample_data/training_data/iter_{}.csv --output_dir=datasets/sample_data/training_data --feature_name="Morgan FP_2_1024" --cutoff=0.4 --dist_function=tanimoto_dissimilarity --process_count=2 --index_name="Index ID"
       # Tests that inference notebook can execute in the conda environment
       - name: Test Simulation Runner
         shell: bash --login {0}
