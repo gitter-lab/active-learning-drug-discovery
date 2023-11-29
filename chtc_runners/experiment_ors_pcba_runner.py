@@ -66,7 +66,9 @@ def uniform_random_sample(task_df, train_file, seed, sample_size, task_name):
     
 
 """ 
-    Helper function to diversity (Tanimoto dissimilarity) sampling.
+    Helper function to diversity sampling. 
+    Unoptimized greedy one-by-one selection of a diverse set of compounds using Tanimoto dissimilarity.
+    Takes a lot of memory and time for large datasets. 
     Saves train (sampled) and unlabeled (non-sampled) csv files to train_file directory. 
 """
 def diversity_sample(task_df, train_file, seed, sample_size, task_name):
@@ -81,6 +83,8 @@ def diversity_sample(task_df, train_file, seed, sample_size, task_name):
     cpds_to_select[0] = np.random.choice(active_indices, replace=False, size=1) # guarantee at least one hit is in training set
     
     X_prosp = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in task_df['Morgan FP_2_1024']]).astype(float)
+    
+    # start selecting compounds that are most diverse from what is already in dataset
     for i in range(1, sample_size):
         x = X_prosp[cpds_to_select[:i],:]
         remaining_cpds = np.setdiff1d(np.arange(X_prosp.shape[0]), cpds_to_select[:i])
@@ -116,10 +120,81 @@ def diversity_sample(task_df, train_file, seed, sample_size, task_name):
     print('Diversity sampled {} compounds from task {}. Time {} minutes.'.format(sample_df.shape[0], task_name, (end_time - start_time)/60.0))
   
   
+""" 
+    Helper function for fast diversity sampling.
+    Uses Butina-Taylor clusters to speedup selecting a diverse set of compounds. 
+    Saves train (sampled) and unlabeled (non-sampled) csv files to train_file directory. 
+"""
+def fast_diversity_sample(all_data_df, task_df, train_file, seed, sample_size, task_name):
+    print('Diversity sampling from dataset...')
+    start_time = time.time()
+    
+    dataset_size = task_df.shape[0]
+    active_indices = np.where(task_df[task_name] == 1)[0]
+    cluster_leaders = task_df['BT_0.4 Leader Index'].unique()
+    cluster_leaders_df = all_data_df.iloc[cluster_leaders,:]
+    
+    # select random active
+    np.random.seed(seed)
+    cpds_to_select = np.zeros(sample_size, dtype=int)
+    cpds_to_select[0] = np.random.choice(active_indices, replace=False, size=1) # guarantee at least one hit is in training set
+    
+    clusters_so_far = [task_df.iloc[cpds_to_select[0]]['BT_0.4 Leader Index']]
+    
+    X_prosp = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in all_data_df['Morgan FP_2_1024']]).astype(float)
+    
+    # start selecting compounds that are most diverse from CLUSTERS already in dataset
+    for i in range(1, sample_size):
+        x = X_prosp[clusters_so_far,:]
+        remaining_clusters = np.setdiff1d(cluster_leaders, clusters_so_far)
+        y = X_prosp[remaining_clusters,:]
+        
+        # adapted from: https://github.com/deepchem/deepchem/blob/2531eca8564c1dc68910d791b0bcd91fd586afb9/deepchem/trans/transformers.py#L752
+        numerator = np.dot(y, x.T).flatten() # equivalent to np.bitwise_and(X_batch, Y_batch), axis=1)
+        denominator = 1024 - np.dot(1-y, (1-x).T).flatten() # np.sum(np.bitwise_or(X_rep, Y_rep), axis=1)
 
+        tandist = numerator / denominator
+        tandist = 1.0 - tandist
+
+        tandist = tandist.reshape(y.shape[0], -1)
+        
+        mean_dist_to_selected = tandist.mean(axis=1)
+        farthest_idx = np.argmax(mean_dist_to_selected)
+        
+        cluster_to_select = remaining_clusters[farthest_idx]
+        clusters_so_far.append(cluster_to_select)
+        cluster_id = all_data_df.iloc[cluster_to_select]['BT_0.4 ID']
+        
+        # randomly sample a cpd from this cluster
+        cluster_cpds = np.where(task_df['BT_0.4 ID'] == cluster_id)[0]
+        cluster_cpds_idx = np.setdiff1d(cluster_cpds, cpds_to_select[:i])
+        random_cluster_cpd_idx = cluster_cpds_idx[np.random.randint(0, cluster_cpds_idx.shape[0])]
+        cpds_to_select[i] = random_cluster_cpd_idx
+
+    sample_df = task_df.iloc[cpds_to_select,:]
+    sample_df.to_csv(train_file, compression='gzip', index=False)
+    
+    assert sample_df[task_name].sum() > 0
+    assert sample_df.shape[0] == sample_size
+    
+    unlabeled_df = task_df.iloc[np.setdiff1d(np.arange(dataset_size), cpds_to_select)]
+    unlabeled_df.to_csv(train_file.replace('train', 'unlabeled'), compression='gzip', index=False)
+    
+    tmp_df = pd.concat([sample_df, unlabeled_df]).sort_values('Index ID')
+    assert task_df.equals(tmp_df)
+    
+    end_time = time.time()
+    print('Diversity sampled {} compounds from task {}. Time {} minutes.'.format(sample_df.shape[0], task_name, (end_time - start_time)/60.0))
+    
 # constants
 SEEDS_LIST = [55886611, 91555713, 10912561, 69210899, 75538109, 
-              33176925, 17929553, 26974345, 63185387, 54808003]
+              33176925, 17929553, 26974345, 63185387, 
+              54808003, 14301003]
+# NOTE1: diversity jobs use seed 54808003 for all sizes, 
+# however 156 of these diversity jobs took more than 72hrs with seed 54808003, 
+# so seed 14301003 was used for these 156 jobs.
+
+#NOTE2: decided to add seed info in results file. so above list of seeds is not checked, allowing user to give any seed.
               
 if __name__ ==  '__main__':
     # read args
@@ -176,7 +251,7 @@ if __name__ ==  '__main__':
     if sampling_type == 'random':
         uniform_random_sample(task_df, training_data_file, seed, sample_size, task_name)
     elif sampling_type == 'diversity':
-        diversity_sample(task_df, training_data_file, seed, sample_size, task_name)
+        fast_diversity_sample(data_df, task_df, training_data_file, seed, sample_size, task_name)
     
     
     print('----------------------------------------------------------------------------------------------')
@@ -238,3 +313,7 @@ if __name__ ==  '__main__':
     ors_end_time = time.time()
     print('Finished processing one round screen. Took {} seconds.'.format(ors_end_time-ors_start_time))
     print('----------------------------------------------------------------------------------------------')
+    
+    # remove unlabeled csv to save on space
+    unlabeled_file = training_data_file.replace('train', 'unlabeled')
+    os.remove(unlabeled_file)

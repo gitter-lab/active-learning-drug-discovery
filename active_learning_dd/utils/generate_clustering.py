@@ -1,5 +1,7 @@
 """
-    Script for generating clusters using distance function.
+    Script for generating clusters using distance function. 
+    NOTE: this uses rdkit implementation of Taylor-Butina clustering (unoptimizied for large datasets). See generate_bt_clustering for larger datasets.
+    
     csv_file_or_dir: specifies a single file or path with format of csv files to be loaded. e.g: /path/iter_{}.csv or /path/iter_*.csv.
     output_dir: where to save the modified input csv files with cluster information added.
     feature_name: specifies the column name for features in the csv file.

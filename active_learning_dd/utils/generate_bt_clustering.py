@@ -1,6 +1,9 @@
 """
     Script for generating clusters using Butina-Taylor esque method with a specified distance function.
-    csv_file_or_dir: specifies a single file or path with format of csv files to be loaded. e.g: /path/iter_{}.csv or /path/iter_*.csv.
+    Handles large datasets; reads data into RAM in chunks and makes use of multithreading.
+    Output: two .dat files for cluster id assignment and leader index of cluster. 
+    
+    csv_file_or_dir: specifies a single file or path with format of csv files to be loaded. e.g: /path/iter_{}.csv or /path/iter_*.csv. Use {} instead of *. 
     output_dir: where to save the modified input csv files with cluster information added.
     feature_name: specifies the column name for features in the csv file.
     cutoff: instances within this cutoff distance belong to the same cluster.
@@ -9,7 +12,7 @@
     
         Usage:
         python generate_bt_clustering.py \
-        --csv_file_or_dir=../../datasets/file_*.csv \
+        --csv_file_or_dir=../../datasets/file_{}.csv \
         --output_dir=../../datasets/ \
         --feature_name="Morgan FP_2_1024" \
         --cutoff=0.4 \
@@ -60,7 +63,11 @@ def get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batc
                 if i > 0:
                     row_start = np.sum(instances_per_file[:i]) + batch_i*chunksize
                     row_end = min(np.sum(instances_per_file[:(i+1)]), np.sum(instances_per_file[:i]) + (batch_i+1)*chunksize)
-                X[chunk[index_name].values.astype('int64'),:] = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in chunk[feature_name]]).astype(float) # this is from: https://stackoverflow.com/a/29091970
+                    
+                if index_name is None:
+                    X[row_start:row_end,:] = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in chunk[feature_name]]).astype(float) # this is from: https://stackoverflow.com/a/29091970
+                else:
+                    X[chunk[index_name].values.astype('int64'),:] = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in chunk[feature_name]]).astype(float) # this is from: https://stackoverflow.com/a/29091970
     X.flush()
     return n_instances, n_features
     
@@ -132,6 +139,9 @@ def compute_nn_total_wrapper(start_ind, end_ind,
 """
     Function wrapper method for clustering singletons.
     Used with multiprocessing.
+    
+    NOTE 1: output files cluster_assigment_vector_ and cluster_leader_idx_vector_ are 1D and assume same ordering of original data file. 
+    NOTE 2: may update this in future to be 2D where first column is Index ID and second column is assignment value. 
 """
 def cluster_singletons_wrapper(start_ind, end_ind,
                                n_instances, cutoff,
@@ -425,7 +435,7 @@ if __name__ ==  '__main__':
     parser.add_argument('--process_count', type=int, default=1, action="store", dest="process_count", required=False)
     parser.add_argument('--process_batch_size', type=int, default=2**16, action="store", dest="process_batch_size", required=False)
     parser.add_argument('--dissimilarity_memmap_filename', default=None, action="store", dest="dissimilarity_memmap_filename", required=False)
-    parser.add_argument('--index_name', default='Index ID', action="store", dest="index_name", required=False)
+    parser.add_argument('--index_name', default=None, action="store", dest="index_name", required=False)
     
     given_args = parser.parse_args()
     csv_file_or_dir = given_args.csv_file_or_dir
@@ -445,6 +455,7 @@ if __name__ ==  '__main__':
     
     num_files = len(glob.glob(csv_file_or_dir.format('*')))
     csv_files_list = [csv_file_or_dir.format(i) for i in range(num_files)]
+    print(csv_files_list)
     if dissimilarity_memmap_filename is None:
         n_instances, n_features = get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batch_size) 
     else:
