@@ -42,9 +42,7 @@ jobs:
    # Tests the BT clustering
       - name: Test BT_Clustering
         shell: bash --login {0}
-        run: |
-          cd active_learning_dd/utils
-          python generate_bt_clustering.py --csv_file_or_dir=./sample_data/unlabeled_data/unlabeled_0.csv --output_dir=./tmp_test --feature_name="Morgan FP_2_1024" --cutoff=0.4
+        run: python active_learning_dd/utils/generate_bt_clustering.py --csv_file_or_dir=datasets/sample_data/unlabeled_data/unlabeled_0.csv --output_dir=./tmp_test --feature_name="Morgan FP_2_1024" --cutoff=0.4
     # Tests that base Simulation Runner
       - name: Test Simulation Runner
         shell: bash --login {0}
