@@ -380,6 +380,9 @@ def cluster_features(n_instances, n_features, dist_func, output_dir, tmp_dir,
             nn_total_vector.flush()
             cluster_leader_idx_vector.flush()
     
+    neighbor_matrix.flush()
+    nn_total_vector.flush()
+    cluster_leader_idx_vector.flush()
     del cluster_assigment_vector
     del cluster_leader_idx_vector
     del neighbor_matrix
@@ -427,11 +430,9 @@ if __name__ ==  '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--csv_file_or_dir', action="store", dest="csv_file_or_dir", required=True)
     parser.add_argument('--output_dir', action="store", dest="output_dir", required=True)
-    parser.add_argument('--feature_name', default='Morgan FP_2_1024', action="store", 
-                        dest="feature_name", required=False)
+    parser.add_argument('--feature_name', default='Morgan FP_2_1024', action="store", dest="feature_name", required=False)
     parser.add_argument('--cutoff', type=float, default=0.2, action="store", dest="cutoff", required=False)
-    parser.add_argument('--dist_function', default='tanimoto_dissimilarity', action="store", 
-                        dest="dist_function", required=False)
+    parser.add_argument('--dist_function', default='tanimoto_dissimilarity', action="store",  dest="dist_function", required=False)
     parser.add_argument('--process_count', type=int, default=1, action="store", dest="process_count", required=False)
     parser.add_argument('--process_batch_size', type=int, default=2**16, action="store", dest="process_batch_size", required=False)
     parser.add_argument('--dissimilarity_memmap_filename', default=None, action="store", dest="dissimilarity_memmap_filename", required=False)
