@@ -3,6 +3,8 @@
     Initial training data was sampled from PstP dataset using uniform random sampling or diversity (Tanimoto dissimilarity) sampling.
     Experiment 4 - PstP: prospective screening of PstP target. 
     
+    NOTE: This dataset was generated from notebook Experiment 4 - One Round Screening - Prepare Datasets
+    
     Usage:
         python experiment_ors_pstp_runner.py \
         --pipeline_params_json_file=../param_configs/experiment_pstp_hyperparams/one_round_screening/ors_pstp_pipeline_config.json \
