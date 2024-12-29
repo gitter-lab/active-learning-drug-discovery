@@ -30,7 +30,7 @@ from active_learning_dd.utils.data_utils import get_duplicate_smiles_in1d
 from active_learning_dd.utils.generate_dissimilarity_matrix import compute_dissimilarity_matrix
 from simulation_utils import *
     
-stored_hash = "eea9cbf3b56bfbeb2b0186e0d0b4a43f7cd1abd32dc99c234b3eb47048012f9c"
+stored_hash = "2c0231e2376e54a97e34c378fa3f2c8636e6cdb6d77cdd8610c76f348608ac62"
   
 if __name__ ==  '__main__':
     # read args
@@ -77,9 +77,10 @@ if __name__ ==  '__main__':
     
     if precompute_dissimilarity_matrix:
         if pipeline_config['common']['dissimilarity_memmap_filename'] is None:
-            pipeline_config['common']['dissimilarity_memmap_filename'] = '../datasets/dissimilarity_matrix.dat'
+            pipeline_config['common']['dissimilarity_memmap_filename'] = '../datasets/sample_data/'
         compute_dissimilarity_matrix(csv_file_or_dir=pipeline_config['unlabeled_data_params']['data_path_format'], 
                                      output_dir=pipeline_config['common']['dissimilarity_memmap_filename'])
+        pipeline_config['common']['dissimilarity_memmap_filename'] = '../datasets/sample_data/dissimilarity_matrix_66_66.dat'
     
     ##########################################################################################################################
     for iter_num in range(iter_max):
@@ -118,6 +119,7 @@ if __name__ ==  '__main__':
     
     df_hash = hashlib.sha256(pd.util.hash_pandas_object(selected_df, index=True).values).hexdigest()
     
+    print(df_hash)
     assert selected_df.shape[0] == (iter_max)*batch_size 
     assert df_hash == stored_hash
     

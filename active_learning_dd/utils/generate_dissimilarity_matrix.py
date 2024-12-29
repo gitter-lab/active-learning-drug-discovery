@@ -12,8 +12,7 @@
         --csv_file_or_dir=../../datasets/lc_clusters_cv_96/unlabeled_{}.csv \
         --output_dir=../../datasets/ \
         --feature_name="Morgan FP_2_1024" \
-        --cutoff=0.3 \
-        --dist_function=tanimoto_dissimilarity \
+        --dist_function="tanimoto_dissimilarity" \
         --process_count=4 \
         --process_batch_size=2056
 """
@@ -29,14 +28,16 @@ from multiprocessing import Process
 
 from .data_utils import *
 
-def get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batch_size) :
+def get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batch_size):
     # first get n_instances
+    n_features = None
     instances_per_file = []
     for f in csv_files_list:
         for chunk in pd.read_csv(f, chunksize=process_batch_size):
             instances_per_file.append(chunk.shape[0])
-            
-    n_features = len(chunk[feature_name].iloc[0])
+            if not n_features:
+                n_features = len(chunk[feature_name].iloc[0])
+   
     n_instances = np.sum(instances_per_file)
     X = np.memmap(tmp_dir+'/X.dat', dtype='float16', mode='w+', shape=(n_instances, n_features))
     chunksize = process_batch_size
@@ -48,6 +49,7 @@ def get_features(csv_files_list, feature_name, index_name, tmp_dir, process_batc
                 if i > 0:
                     row_start = np.sum(instances_per_file[:i]) + batch_i*chunksize
                     row_end = min(np.sum(instances_per_file[:(i+1)]), np.sum(instances_per_file[:i]) + (batch_i+1)*chunksize)
+                
                 X[chunk[index_name].values.astype('int64'),:] = np.vstack([np.fromstring(x, 'u1') - ord('0') for x in chunk[feature_name]]).astype(float) # this is from: https://stackoverflow.com/a/29091970
     X.flush()
     return n_instances, n_features
