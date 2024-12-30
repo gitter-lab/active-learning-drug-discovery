@@ -23,6 +23,9 @@ jobs:
       - name: Install active_learning_dd package
         shell: bash --login {0}
         run: pip install -e .
+      - name: Install libgfortran package
+        shell: bash --login {0}
+        run: conda install conda-forge::libgfortran
       - name: Test sample data runner
         shell: bash --login {0}
         run: |
