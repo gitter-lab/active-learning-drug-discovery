@@ -6,9 +6,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
-from .supervised import *
-from .unsupervised import *
  
 def prepare_model(model_params,
                   task_names):
@@ -24,6 +21,7 @@ def model_func_dict():
 
     
 def prepare_rf_model(rf_params, task_names):
+    from .supervised import sklearn_randomforest
     rf_model = sklearn_randomforest.SklearnRF(task_names,
                                              rf_params['n_estimators'],
                                              rf_params['max_features'],
@@ -36,6 +34,7 @@ def prepare_rf_model(rf_params, task_names):
     return rf_model
     
 def prepare_simple_nn(nn_params, task_names):
+    from .supervised import neural_network
     nn_model = neural_network.SimpleNN(task_names,
                                        nn_params['n_features'],
                                        nn_params['batch_size'],

@@ -23,9 +23,9 @@ jobs:
       - name: Install active_learning_dd package
         shell: bash --login {0}
         run: pip install -e .
-      - name: Upgrade scipy
+      - name: Downgrade scikit-learn
         shell: bash --login {0}
-        run: pip install --upgrade scipy
+        run: conda install scikit-learn=0.19.1
       - name: Test sample data runner
         shell: bash --login {0}
         run: |

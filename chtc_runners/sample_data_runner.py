@@ -30,7 +30,7 @@ from active_learning_dd.utils.data_utils import get_duplicate_smiles_in1d
 from active_learning_dd.utils.generate_dissimilarity_matrix import compute_dissimilarity_matrix
 from simulation_utils import *
     
-stored_hash = "2c0231e2376e54a97e34c378fa3f2c8636e6cdb6d77cdd8610c76f348608ac62"
+stored_hash = "b39ff65930a4685016cab0ba9d65a74864c6a6905039643d64b5522fd1968d6c"
   
 if __name__ ==  '__main__':
     # read args

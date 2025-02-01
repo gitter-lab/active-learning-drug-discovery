@@ -22,12 +22,12 @@ git clone https://github.com/gitter-lab/active-learning-drug-discovery.git
 cd active-learning-drug-discovery
 ```
 
-Setup the `active_learning_dd` conda environment using the `conda_env.yml` file:
+Setup the `active_learning_dd` conda environment using the `conda_cpu_env.yml` file:
 ```
-conda env create -f conda_env.yml
+conda env create -f conda_cpu_env.yml
 conda activate active_learning_dd
 ```
-If you do not want GPU support, you can replace `conda_env.yml` with `conda_cpu_env.yml`.
+If you do want GPU support, you can replace `conda_cpu_env.yml` with `conda_env.yml`.
 
 Finally, install `active_learning_dd` with `pip`:
 ```
