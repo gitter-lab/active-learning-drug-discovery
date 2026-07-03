@@ -1,4 +1,4 @@
-# Active Learning in Drug Discovery
+# Cluster-Based Weighted Selector (formerly Active Learning in Drug Discovery)
 
 [![Test active learning in drug discovery](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml/badge.svg)](https://github.com/gitter-lab/active-learning-drug-discovery/actions/workflows/test.yml)
 
