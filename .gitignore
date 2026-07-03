@@ -111,7 +111,10 @@ active_learning_dd/utils/tmp/*
 *.gz
 analysis_notebooks_local/*
 
+!datasets/Salts.txt
 !datasets/sample_data
 !datasets/sample_data/training_data/*.csv.gz
 !datasets/sample_data/unlabeled_data/*.csv.gz
+!datasets/PstP/
+!datasets/PstP/**
 !analysis_notebooks/R-code/*
