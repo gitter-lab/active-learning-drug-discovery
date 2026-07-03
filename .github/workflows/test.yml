@@ -26,8 +26,14 @@ jobs:
       - name: Downgrade scikit-learn
         shell: bash --login {0}
         run: conda install scikit-learn=0.19.1
+      - name: Debug env
+      - shell: bash --login {0}
+        run: |
+          which python
+          which pip
+          python -c "import sys; print(sys.executable)"
       - name: Test sample data runner
-        shell: bash --login {0}
+      - shell: bash --login {0}
         run: |
           cd chtc_runners
           python sample_data_runner.py \
