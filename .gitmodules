@@ -1,0 +1,3 @@
+[submodule "ALDD-PstP-Results"]
+	path = ALDD-PstP-Results
+	url = https://github.com/gitter-lab/ALDD-PstP-Results.git
