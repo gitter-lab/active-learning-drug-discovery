@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-13]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -19,7 +19,7 @@ jobs:
         with:
           activate-environment: active_learning_dd
           environment-file: conda_cpu_env.yml
-          auto-activate-base: false
+          auto-activate: false
           miniconda-version: 'latest'
       - name: Install active_learning_dd package
         shell: bash --login {0}
