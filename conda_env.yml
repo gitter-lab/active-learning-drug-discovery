@@ -13,5 +13,8 @@ dependencies:
 - cudnn=7.2.1
 - tensorflow-gpu=1.11.0
 - keras=2.2.4
-- scikit-learn=0.19.2
+- scikit-learn=0.19.1
 - pubchempy=1.0.4
+- pip=20.2.4
+- setuptools=49.6.0
+- wheel=0.35.1
