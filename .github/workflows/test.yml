@@ -23,44 +23,28 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate: false
           miniconda-version: 'latest'
-      - name: Trace activation
-        shell: bash -x {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate active_learning_dd
-          which python
-          python --version
-      - name: Debug shell (non-login sanity check)
-        shell: bash {0}
-        run: echo "non-login shell works"
-      - name: Debug shell activation
+      # Resolve the env's Python interpreter path per-OS. We call it directly
+      # instead of `conda activate` to avoid the keras activation hook
+      # (keras_activate.sh probes theano and fails), bash 3.2 activation quirks
+      # on macOS, and the "conda: command not found" Git Bash issue on Windows.
+      - name: Resolve environment python
+        id: py
         shell: bash {0}
         run: |
-          echo "made it past profile sourcing"
-          which python
-          conda info
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            echo "python=$CONDA/envs/active_learning_dd/python.exe" >> "$GITHUB_OUTPUT"
+          else
+            echo "python=$CONDA/envs/active_learning_dd/bin/python" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install active_learning_dd package
         shell: bash {0}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate active_learning_dd
-          which python
-          python -m pip install -v -e .
-      - name: Debug env
-        shell: bash {0}
-        run: |
-          which python
-          which pip
-          python -c "import sys; print(sys.executable)"
-          conda list
+        run: "${{ steps.py.outputs.python }}" -m pip install -v -e .
       - name: Test sample data runner
         shell: bash {0}
         run: |
           set -e
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate active_learning_dd
           cd chtc_runners
-          python sample_data_runner.py \
+          "${{ steps.py.outputs.python }}" sample_data_runner.py \
             --pipeline_params_json_file=../param_configs/sample_data_config.json \
             --hyperparams_json_file=../param_configs/experiment_PstP_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
             --iter_max=5 \
