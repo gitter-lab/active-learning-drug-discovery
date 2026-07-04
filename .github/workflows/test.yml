@@ -23,29 +23,23 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate: false
           miniconda-version: 'latest'
-      # Call the env's python by absolute path instead of `conda activate` to
-      # avoid the keras activation hook (keras_activate.sh probes theano and
-      # fails), bash 3.2 quirks on macOS, and Git Bash "conda not found" on
-      # Windows. Windows conda puts python.exe in the env root; Unix uses
-      # bin/python, so set ENV_PYTHON with OS-conditional steps.
-      - name: Set environment python path (Unix)
-        if: ${{ runner.os != 'Windows' }}
+      # The keras 2.2.4 package ships an activation hook that probes the
+      # theano backend and fails on macOS, which kills login-shell startup
+      # because the shell profile activates the environment under `set -e`.
+      # Replace the hook with a plain backend export so standard activation
+      # works everywhere.
+      - name: Replace keras activation hook (macOS)
+        if: ${{ runner.os == 'macOS' }}
         shell: bash {0}
-        run: echo "ENV_PYTHON=$CONDA/envs/active_learning_dd/bin/python" >> "$GITHUB_ENV"
-      - name: Set environment python path (Windows)
-        if: ${{ runner.os == 'Windows' }}
-        shell: bash {0}
-        run: echo "ENV_PYTHON=$CONDA/envs/active_learning_dd/python.exe" >> "$GITHUB_ENV"
+        run: echo 'export KERAS_BACKEND=tensorflow' > "$CONDA/envs/active_learning_dd/etc/conda/activate.d/keras_activate.sh"
       - name: Install active_learning_dd package
-        shell: bash {0}
-        run: |
-          "$ENV_PYTHON" -m pip install -v -e .
+        shell: bash --login {0}
+        run: python -m pip install --disable-pip-version-check -e .
       - name: Test sample data runner
-        shell: bash {0}
+        shell: bash --login {0}
         run: |
-          set -e
           cd chtc_runners
-          "$ENV_PYTHON" sample_data_runner.py \
+          python sample_data_runner.py \
             --pipeline_params_json_file=../param_configs/sample_data_config.json \
             --hyperparams_json_file=../param_configs/experiment_PstP_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
             --iter_max=5 \
