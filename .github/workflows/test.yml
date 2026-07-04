@@ -23,28 +23,29 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate: false
           miniconda-version: 'latest'
-      # Resolve the env's Python interpreter path per-OS. We call it directly
-      # instead of `conda activate` to avoid the keras activation hook
-      # (keras_activate.sh probes theano and fails), bash 3.2 activation quirks
-      # on macOS, and the "conda: command not found" Git Bash issue on Windows.
-      - name: Resolve environment python
-        id: py
+      # Call the env's python by absolute path instead of `conda activate` to
+      # avoid the keras activation hook (keras_activate.sh probes theano and
+      # fails), bash 3.2 quirks on macOS, and Git Bash "conda not found" on
+      # Windows. Windows conda puts python.exe in the env root; Unix uses
+      # bin/python, so set ENV_PYTHON with OS-conditional steps.
+      - name: Set environment python path (Unix)
+        if: ${{ runner.os != 'Windows' }}
         shell: bash {0}
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            echo "python=$CONDA/envs/active_learning_dd/python.exe" >> "$GITHUB_OUTPUT"
-          else
-            echo "python=$CONDA/envs/active_learning_dd/bin/python" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "ENV_PYTHON=$CONDA/envs/active_learning_dd/bin/python" >> "$GITHUB_ENV"
+      - name: Set environment python path (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: bash {0}
+        run: echo "ENV_PYTHON=$CONDA/envs/active_learning_dd/python.exe" >> "$GITHUB_ENV"
       - name: Install active_learning_dd package
         shell: bash {0}
-        run: "${{ steps.py.outputs.python }}" -m pip install -v -e .
+        run: |
+          "$ENV_PYTHON" -m pip install -v -e .
       - name: Test sample data runner
         shell: bash {0}
         run: |
           set -e
           cd chtc_runners
-          "${{ steps.py.outputs.python }}" sample_data_runner.py \
+          "$ENV_PYTHON" sample_data_runner.py \
             --pipeline_params_json_file=../param_configs/sample_data_config.json \
             --hyperparams_json_file=../param_configs/experiment_PstP_hyperparams/sampled_hyparams/ClusterBasedWCSelector_609.json \
             --iter_max=5 \
