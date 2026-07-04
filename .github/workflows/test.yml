@@ -9,8 +9,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix: # Old packages not expected to work on macos-latest with arm64
-        os: [ubuntu-latest, windows-latest, macos-13]
+      matrix:
+        # Old packages not expected to work on macos-latest with arm64
+        # macOS with x86_64 available through August 2027 https://github.com/actions/runner-images/issues/13045
+        os: [ubuntu-latest, windows-latest, macos-15-intel]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
