@@ -23,6 +23,13 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate: false
           miniconda-version: 'latest'
+      - name: Trace activation
+        shell: bash -x {0}
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate active_learning_dd
+          which python
+          python --version
       - name: Debug shell (non-login sanity check)
         shell: bash {0}
         run: echo "non-login shell works"
