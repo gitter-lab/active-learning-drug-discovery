@@ -23,9 +23,15 @@ jobs:
           environment-file: conda_cpu_env.yml
           auto-activate: false
           miniconda-version: 'latest'
+      - name: Debug shell activation
+        shell: bash --login {0}
+        run: |
+          echo "made it past profile sourcing"
+          which python
+          conda info
       - name: Install active_learning_dd package
         shell: bash --login {0}
-        run: python -m pip install -e .
+        run: python -m pip install -v -e .
       - name: Debug env
         shell: bash --login {0}
         run: |
