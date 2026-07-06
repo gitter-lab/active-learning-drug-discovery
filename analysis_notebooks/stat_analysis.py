@@ -8,6 +8,7 @@ from statsmodels.stats.libqsturng import psturng
 from scipy.stats import spearmanr
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 plt.rcParams.update({'font.size': 20})
 
@@ -20,7 +21,13 @@ def setup_scmamp_rpy2():
     from rpy2.robjects.vectors import StrVector
     from rpy2.robjects.packages import importr, data
     from rpy2.robjects import r, pandas2ri
-    pandas2ri.activate();
+    from rpy2.robjects.conversion import localconverter
+    from rpy2 import robjects
+    from rpy2.robjects import default_converter
+    #pandas2ri.activate();
+
+    cv = default_converter + pandas2ri.converter
+    robjects.conversion.set_conversion(cv)
 
     rpy2.robjects.r['options'](warn=-1)
     install_packages = False
@@ -319,7 +326,7 @@ def plot_cem_heatmap(all_96_cs, all_96_bm, all_96_hs, figsize, title,
 def plot_boxplots_simple(all_df, top_df_all, 
                          figsize=(30, 14), metric_col_box='total_hits', 
                          metric_col_point='total_hits_mean', hs_id_col='hs_id', 
-                         title='', xlabel='', ylabel='', isExp1=False, fontsize=40):
+                         title='', xlabel='', ylabel='', isExp1=False, fontsize=40, savefile = None):
     all_df.index = all_df[hs_id_col]
     top_df_all = top_df_all.sort_values(metric_col_point, ascending=False)
     top_df_all[hs_id_col] = top_df_all.index.tolist()
@@ -330,8 +337,23 @@ def plot_boxplots_simple(all_df, top_df_all,
     sns.boxplot(x="hs_id", y=metric_col_box, data=all_df_sorted)
     sns.pointplot(x="hs_id", y=metric_col_point, data=top_df_all, linestyles='--', scale=0.8, 
                   color='k', errwidth=0, capsize=0)
+    #################################################
+    '''Adding the rainbow color -- I have no idea how the color was there before this was added'''
+    cmap = cm.get_cmap('rainbow_r')
+    
+    # Get all the box patches and color them with gradient
+    boxes = [patch for patch in ax.patches if type(patch).__name__ == 'PathPatch']
+    num_boxes = len(boxes)
+    
+    for i, box in enumerate(boxes):
+        # Calculate color position (0 to 1 from left to right)
+        color_position = i / (num_boxes - 1) if num_boxes > 1 else 0.5
+        box.set_facecolor(cmap(color_position))
+        box.set_alpha(0.7)  # optional: adjust transparency
+    #########################################
     labels = [x.replace('ClusterBasedWCSelector', 'CBWS') for x in top_df_all[hs_id_col].tolist()]
-    locs, _ = plt.xticks()
+    locs = list(range(len(labels)))
+    #locs, _ = plt.xticks()
     locs = [i+0.2 for i in locs]
     plt.xticks(locs, labels, rotation=90)
     
@@ -351,12 +373,14 @@ def plot_boxplots_simple(all_df, top_df_all,
                                markerfacecolor='r', markersize=15)]
     
         ax.legend(custom_lines, ['Top', 'Middle', 'Bottom'],
-                  title='Experiment 0 Sampled\nCBWS Color Code:', title_fontsize=35, fontsize=35)
+                  title='Initial Parameter Sweep\nCBWS Color Code:', title_fontsize=35, fontsize=35)
             
     plt.xticks(rotation=70, ha='right')
     plt.xlabel(xlabel, fontsize=fontsize)
     plt.ylabel(ylabel, fontsize=fontsize)
     plt.title(title, fontsize=fontsize, y=1.035)
+    if(savefile != None):
+        plt.savefig(savefile)
     
     plt.show()
     
