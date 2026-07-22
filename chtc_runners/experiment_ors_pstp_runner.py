@@ -10,7 +10,14 @@
         --pipeline_params_json_file=../param_configs/experiment_pstp_hyperparams/one_round_screening/ors_pstp_pipeline_config.json \
         --training_data_dir=../datasets/pstp/one_round_screening/random/size_400/sample_0/ \ 
         --max_size=4000
+
+        python chtc_runners/experiment_ors_pstp_runner.py --pipeline_params_json_file=param_configs/experiment_PstP_hyperparams/one_round_screening/ors_pstp_pipeline_config.json --training_data_dir=datasets/PstP/one_round_screening/random/size_400/sample_0/ --max_size=4000
+
+        
+        python chtc_runners/experiment_ors_pstp_runner.py --pipeline_params_json_file=param_configs/experiment_PstP_hyperparams/one_round_screening/ors_pstp_pipeline_config.json --training_data_dir=datasets/PstP/one_round_screening/diversity/size_1200/sample_0/ --max_size=4000
+
 """
+
 
 from __future__ import absolute_import
 from __future__ import division
@@ -53,7 +60,12 @@ if __name__ ==  '__main__':
     
     # load training and unlabeled data
     import copy
+    '''
+    I modified the param_config file so that this can run from the root directory. If we want to keep it in the chtc style, 
+    remember to change the path to data back. 
+    '''
     unlabeled_loader_params = pipeline_config['data_params']
+
     training_loader_params = copy.deepcopy(pipeline_config['data_params'])
     training_loader_params['data_path_format'] = training_data_file
     
@@ -82,7 +94,8 @@ if __name__ ==  '__main__':
     model.fit(X_train, y_train)
     end_time = time.time()
     print('Finished training model. Took {} seconds.'.format(end_time - start_time))
-    
+    print(unlabeled_loader.get_features())
+    print()
     # predict on unlabeled pool
     preds_unlabeled = model.predict(unlabeled_loader.get_features())[:,0] 
     
