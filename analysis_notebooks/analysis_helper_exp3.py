@@ -6,6 +6,7 @@ import shutil
 from IPython.display import clear_output
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 def get_hit_metrics(job_dir, iter_max=10, task_col='pcba-aid624173', cluster_col='BT_0.4 ID'):
@@ -63,6 +64,7 @@ def get_hit_metrics(job_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
     
     iter_sums = [10, 20, 30, 40, 50]
     sums_list = []
+    # print(job_df['iter_num'])
     for i in iter_sums:
         job_slice = job_df[job_df['iter_num'] < i]
         sum_df = job_slice.sum().to_frame().T
@@ -88,17 +90,20 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
     for i, rdir in enumerate(results_dir):
         #clear_output()
         #print('{}/{}'.format(i, len(results_dir)))
+        total = len(results_dir)
+        print(f'\r[{"="*int(50*i/total):{50}s}] {i}/{total} {i/total*100:.0f}%', end='', flush=True)
         
         config_file = rdir+'config.csv'
         
         # get job identifiers
         rd_splits = rdir.split('\\')
-        hs_group = rd_splits[1]
-        hs_id = rd_splits[2]
+        ## I changed all the index values from 1-based to 0-based (i dont know why it 1-based) --Ryan
+        hs_group = rd_splits[0]
+        hs_id = rd_splits[1]
         
-        task_col = rd_splits[3]
-        rf_id = rd_splits[4]
-        batch_size = rd_splits[5]
+        task_col = rd_splits[2]
+        rf_id = rd_splits[3]
+        batch_size = rd_splits[4]
 
         # check that the job completed succesfully:
         # - exactly iter_max*batch_size cpds were selected and that they have unique Index ID
@@ -161,6 +166,9 @@ def get_results(results_dir, iter_max=10, task_col='pcba-aid624173', cluster_col
         all_1536 = pd.concat(all_1536)
     else:
         all_1536 = None
+    # print(all_96)
+    # print(all_384)
+    # print(all_1536)
     all_df = pd.concat([all_96, all_384, all_1536])
     
     return all_96, all_384, all_1536, all_df, successful_jobs, failed_jobs
@@ -617,6 +625,118 @@ def plot_cem_heatmap_all_tasks_exp3(cem_task_dict, task_info, fail_success_count
             f.write("{}\n".format(line))
             
     return cem_wins_dict
+
+def plot_boxplots_multi_lined_exp3(results_df, iter_max, task_info, 
+                              figsize=(16, 12), metric='total_hits', 
+                              title='', xlabel='', ylabel='', save_fmt=None, 
+                              fontsize=35, labelpad=20, tasks_per_plot=10, lines_per_plot = 4, legendfontsize=35):
+    hue_order = ['CBWS_341', 'CBWS_55', 'CBWS_609', 
+                 'MABSelector_2', 'MABSelector_exploitive', 'CBWS_custom_1', 
+                 'ClusterBasedRandom', 'InstanceBasedRandom']
+    results_df = results_df[results_df['iter_num']==iter_max]
+    task_info = task_info.sort_values('active_ratio')
+    tasks = task_info['task_col'].tolist()
+    task_labels = ['{} | {}% hits'.format(row['task_col'].replace('pcba-', ''),  
+                                    row['active_ratio']) for i, row in task_info.iterrows()]
+    
+    latex_lines = []
+    total_iters = int(np.ceil(len(tasks)/(tasks_per_plot)))
+    tasks_per_row = int(tasks_per_plot / lines_per_plot)
+    
+    for task_batch in range(total_iters):
+        tasks_subset = tasks[task_batch*tasks_per_plot:(task_batch+1)*tasks_per_plot]
+        xtick_labels = task_labels[task_batch*tasks_per_plot:(task_batch+1)*tasks_per_plot]
+        trimmed_results_df = results_df[results_df['task_col'].isin(tasks_subset)]
+        
+        # Calculate larger figure size
+        fig_width = 6 * tasks_per_row
+        fig_height = 8 * lines_per_plot + 1  # Extra space for titles and legend
+        fig, axes = plt.subplots(lines_per_plot, tasks_per_row, 
+                                 figsize=(fig_width, fig_height),
+                                 squeeze=False)
+        axes = axes.flatten()
+        # Plot each task in its own subplot
+        for i, (ax, task, label) in enumerate(zip(axes, tasks_subset, xtick_labels)):
+            task_data = trimmed_results_df[trimmed_results_df['task_col'] == task]
+            
+            sns.boxplot(x="task_col", y=metric, hue="hs_id", data=task_data,
+                        order=[task], hue_order=hue_order, ax=ax)
+            
+            ax.set_xlabel(label, fontsize=fontsize-10)  # Remove individual x-labels
+            ax.set_xticklabels([])  # Remove x-tick labels to avoid overlap
+            
+            # Only show y-label on leftmost column
+            if i % tasks_per_row == 0:
+                ax.set_ylabel('')
+            else:
+                ax.set_ylabel('')
+                ax.set_yticklabels([])
+            
+            # Smaller font for subplot titles with more padding
+            #ax.set_title(label, fontsize=fontsize-4, pad=10)
+            ax.tick_params(labelsize=fontsize-2)
+            
+            # Remove spines to make plots look connected
+            if (i + 1) % tasks_per_row != 0 and i < len(tasks_subset) - 1:
+                ax.spines['right'].set_visible(False)
+            
+            if i % tasks_per_row != 0:
+                ax.spines['left'].set_visible(False)
+                ax.tick_params(left=False)
+            
+            # Remove legend from individual plots
+            if ax.get_legend():
+                ax.get_legend().remove()
+        
+        # Hide extra subplots
+        for i in range(len(tasks_subset), len(axes)):
+            axes[i].set_visible(False)
+        
+        # Add vertical dashed lines between plots in the same row
+        for i in range(len(tasks_subset)):
+            if (i + 1) % tasks_per_row != 0 and i < len(tasks_subset) - 1:
+                axes[i].axvline(x=0.5, color='r', linestyle='--', linewidth=1.5)
+        
+        # Add overall title with more space
+        # fig.suptitle(title + ' (plot {} of {})'.format(task_batch+1, total_iters), 
+        #              fontsize=fontsize, y=0.96)
+        fig.suptitle(title, fontsize=fontsize, y=0.96)
+        # Add shared x-label with more space from legend
+        #fig.text(0.5, 0.06, xlabel, ha='center', fontsize=fontsize)
+        fig.supylabel(ylabel, fontsize=fontsize, x=0.06)
+        # Adjust spacing to prevent overlaps
+        plt.subplots_adjust(top=0.92,      # Space below title
+                            bottom=0.14,    # Space above legend
+                            left=0.12, 
+                            right=0.98, 
+                            hspace=0.28,    # Vertical space between rows
+                            wspace=0.0)     # No horizontal space
+        
+        # Add legend below with more space from x-label
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, title='Hyperparameter ID:', 
+                   title_fontsize=legendfontsize, fontsize=legendfontsize,
+                   loc='lower center', bbox_to_anchor=(0.55, 0.01), 
+                   ncol=min(len(labels), 5), frameon=True)
+        if save_fmt is not None:
+            plt.savefig(save_fmt+'boxplots_{}_{}.png'.format(metric, task_batch+1), bbox_inches='tight');
+        
+        plt.show()
+        
+        latex_lines.append('\\vspace*{\\fill}')
+        latex_lines.append('\\begin{figure}[H]\\ContinuedFloat')
+        latex_lines.append('\\centering')
+        latex_lines.append('\\includegraphics[width=\\textwidth]{project_al/experiments/exp3/boxplots/boxplots_'+metric+'_'+str(task_batch+1)+'.png}')
+        latex_lines.append('\\caption[]{Experiment 3.1 per-task \\textbf{Total Hits} boxplots after 50 iterations (102 tasks). ')
+        latex_lines.append("The x-tick labels for each task include number of compounds, number of hits, and hit \\%. \\emph{(cont.)} }")
+        latex_lines.append("\\end{figure}")
+        latex_lines.append("\\vspace*{\\fill}")
+        latex_lines.append("\\newpage")
+        
+    with open(save_fmt+"/latex_{}.txt".format(metric), 'w') as f:
+        for line in latex_lines:
+            f.write("{}\n".format(line))
+
 
 def plot_boxplots_simple_exp3(results_df, iter_max, task_info, 
                               figsize=(16, 12), metric='total_hits', 
